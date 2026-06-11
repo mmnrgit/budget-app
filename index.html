@@ -58,7 +58,12 @@
     padding: 16px 0 8px;
   }
   .header h1 { font-size: 18px; font-weight: 600; margin: 0; }
-  .header p { font-size: 13px; color: var(--text-secondary); margin: 2px 0 0; }
+  .week-nav { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+  .week-nav button.nav-arrow {
+    border: none; background: none; padding: 2px 4px; font-size: 16px;
+    color: var(--text-secondary); line-height: 1;
+  }
+  .week-nav p { font-size: 13px; color: var(--text-secondary); margin: 0; min-width: 110px; text-align: center; }
   button {
     font-family: inherit;
     border: 1px solid var(--border);
@@ -79,6 +84,9 @@
     font-size: 15px;
     font-weight: 600;
     margin-top: 4px;
+  }
+  button.icon-btn {
+    border: none; background: none; font-size: 18px; padding: 4px 6px; color: var(--text-secondary);
   }
   .cats { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 20px; }
   .cat-card {
@@ -121,12 +129,24 @@
   .hist-item {
     display: flex; justify-content: space-between; align-items: center;
     padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+    cursor: pointer;
   }
   .hist-item .left { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); }
-  .hist-item .amount { font-weight: 600; }
+  .hist-item .amount { font-weight: 600; color: var(--text); }
   .hist-item .delete { font-size: 18px; color: var(--text-tertiary); padding: 0 4px; cursor: pointer; }
   .empty { font-size: 13px; color: var(--text-tertiary); text-align: center; padding: 12px 0; }
   .icon { font-size: 18px; }
+  .edit-row { display: flex; flex-direction: column; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 10px; }
+  .edit-row .row { gap: 6px; }
+  .edit-row .row2 { display: flex; gap: 6px; margin-top: 4px; }
+  .settings-panel { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 20px; }
+  .settings-cat { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+  .settings-cat input.icon-input { width: 50px; flex: none; text-align: center; padding: 8px; }
+  .settings-cat input.label-input { flex: 1.6; }
+  .settings-cat input.budget-input { flex: 1; }
+  .settings-cat .remove { font-size: 18px; color: var(--text-tertiary); cursor: pointer; padding: 0 2px; }
+  .add-cat { display: flex; flex-direction: column; gap: 8px; background: var(--card); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; }
+  .toggle-link { font-size: 13px; color: var(--accent); text-align: center; padding: 8px 0; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -134,12 +154,18 @@
 <div class="header">
   <div>
     <h1>Mon budget</h1>
-    <p id="week-range"></p>
+    <div class="week-nav">
+      <button class="nav-arrow" id="prev-week">←</button>
+      <p id="week-range"></p>
+      <button class="nav-arrow" id="next-week">→</button>
+    </div>
   </div>
-  <button id="reset-btn">Réinitialiser</button>
+  <button class="icon-btn" id="settings-btn" title="Catégories">⚙️</button>
 </div>
 
 <div id="cats" class="cats"></div>
+
+<div id="settings" class="settings-panel" style="display:none"></div>
 
 <div class="form-card">
   <p>Ajouter une dépense</p>
@@ -153,69 +179,96 @@
 
 <div id="history" class="history"></div>
 
+<div class="toggle-link" id="reset-btn">Réinitialiser cette semaine</div>
+
 <script>
-const CATS = [
+const DEFAULT_CATS = [
   { id:'sorties', label:'Sorties & plaisirs', icon:'🎉', weekly:68 },
   { id:'essence', label:'Essence', icon:'⛽', weekly:46 },
   { id:'courses', label:'Courses', icon:'🛒', weekly:23 },
   { id:'clopes', label:'Cigarettes', icon:'🚬', weekly:24 }
 ];
 
-function getISOWeekKey(d){
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = (date.getUTCDay() + 6) % 7;
-  date.setUTCDate(date.getUTCDate() - dayNum + 3);
-  const firstThursday = date.getTime();
-  date.setUTCMonth(0,1);
-  if(date.getUTCDay() !== 4){
-    date.setUTCMonth(0, 1 + ((4 - date.getUTCDay()) + 7) % 7);
-  }
-  const week = 1 + Math.round((firstThursday - date.getTime()) / (7*86400000));
-  return date.getUTCFullYear() + '-W' + week;
+let CATS = JSON.parse(localStorage.getItem('categories') || 'null') || DEFAULT_CATS;
+let weekOffset = 0;
+let entries = [];
+let editingIdx = null;
+
+function getMonday(d, offset=0){
+  const date = new Date(d);
+  const day = (date.getDay()+6)%7;
+  date.setDate(date.getDate() - day + offset*7);
+  date.setHours(0,0,0,0);
+  return date;
 }
 
-function weekRangeLabel(d){
-  const day = (d.getDay()+6)%7;
-  const monday = new Date(d); monday.setDate(d.getDate()-day);
+function storageKeyFor(monday){
+  const y = monday.getFullYear();
+  const m = String(monday.getMonth()+1).padStart(2,'0');
+  const d = String(monday.getDate()).padStart(2,'0');
+  return 'expenses-' + y + '-' + m + '-' + d;
+}
+
+function weekRangeLabel(monday){
   const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
   const fmt = x => x.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
   return fmt(monday) + ' – ' + fmt(sunday);
 }
 
-const today = new Date();
-const weekKey = getISOWeekKey(today);
-const STORAGE_KEY = 'expenses-' + weekKey;
-
-let entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-
-const select = document.getElementById('cat-select');
-CATS.forEach(c=>{
-  const opt = document.createElement('option');
-  opt.value = c.id; opt.textContent = c.icon + ' ' + c.label;
-  select.appendChild(opt);
-});
-document.getElementById('week-range').textContent = weekRangeLabel(today);
-
 function colorFor(ratio){
-  if(ratio < 0.7) return {bar:'var(--green)', bg:'var(--green-bg)'};
-  if(ratio < 1) return {bar:'var(--amber)', bg:'var(--amber-bg)'};
-  return {bar:'var(--red)', bg:'var(--red-bg)'};
+  if(ratio < 0.7) return 'var(--green)';
+  if(ratio < 1) return 'var(--amber)';
+  return 'var(--red)';
 }
 
-function render(){
+function currentMonday(){
+  return getMonday(new Date(), weekOffset);
+}
+
+function loadEntries(){
+  const key = storageKeyFor(currentMonday());
+  entries = JSON.parse(localStorage.getItem(key) || '[]');
+}
+
+function saveEntries(){
+  const key = storageKeyFor(currentMonday());
+  localStorage.setItem(key, JSON.stringify(entries));
+}
+
+function saveCats(){
+  localStorage.setItem('categories', JSON.stringify(CATS));
+}
+
+function populateSelect(){
+  const select = document.getElementById('cat-select');
+  const prev = select.value;
+  select.innerHTML = '';
+  CATS.forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c.id; opt.textContent = c.icon + ' ' + c.label;
+    select.appendChild(opt);
+  });
+  if(CATS.find(c=>c.id===prev)) select.value = prev;
+}
+
+function renderWeekLabel(){
+  document.getElementById('week-range').textContent = weekRangeLabel(currentMonday());
+}
+
+function renderCats(){
   const cats = document.getElementById('cats');
   cats.innerHTML = '';
   CATS.forEach(c=>{
     const spent = entries.filter(e=>e.cat===c.id).reduce((s,e)=>s+e.amount,0);
-    const ratio = spent / c.weekly;
+    const ratio = c.weekly > 0 ? spent / c.weekly : 0;
     const col = colorFor(ratio);
     const pct = Math.min(100, Math.round(ratio*100));
     const card = document.createElement('div');
     card.className = 'cat-card';
     let alert = '';
-    if(ratio>=1){
+    if(c.weekly > 0 && ratio>=1){
       alert = `<p class="alert" style="color:var(--red)">Budget dépassé de ${(spent-c.weekly).toFixed(0)}€</p>`;
-    } else if(ratio>=0.7){
+    } else if(c.weekly > 0 && ratio>=0.7){
       alert = `<p class="alert" style="color:var(--amber)">Faut ralentir, plus que ${(c.weekly-spent).toFixed(0)}€</p>`;
     }
     card.innerHTML = `
@@ -223,63 +276,204 @@ function render(){
         <span class="label"><span class="icon">${c.icon}</span>${c.label}</span>
         <span class="amounts">${spent.toFixed(0)}€ <span class="total">/ ${c.weekly}€</span></span>
       </div>
-      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${col.bar}"></div></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div>
       ${alert}
     `;
     cats.appendChild(card);
   });
+}
 
+function renderHistory(){
   const hist = document.getElementById('history');
   if(entries.length===0){
-    hist.innerHTML = '<div class="empty">Aucune dépense enregistrée cette semaine</div>';
-  } else {
-    const items = entries.map((e, i)=>{
-      const c = CATS.find(x=>x.id===e.cat);
-      return `<div class="hist-item">
+    hist.innerHTML = '<p class="title">Cette semaine</p><div class="empty">Aucune dépense enregistrée</div>';
+    return;
+  }
+  let html = '<p class="title">Cette semaine</p>';
+  entries.forEach((e, i)=>{
+    const c = CATS.find(x=>x.id===e.cat) || {icon:'❓', label:'?'};
+    if(i === editingIdx){
+      html += `
+        <div class="edit-row">
+          <div class="row">
+            <select class="edit-cat" style="flex:1.4">${CATS.map(cc=>`<option value="${cc.id}" ${cc.id===e.cat?'selected':''}>${cc.icon} ${cc.label}</option>`).join('')}</select>
+            <input class="edit-amount" type="number" inputmode="decimal" step="0.5" value="${e.amount}" style="flex:1" />
+          </div>
+          <input class="edit-note" type="text" placeholder="Note (optionnel)" value="${e.note ? e.note.replace(/"/g,'&quot;') : ''}" />
+          <div class="row2">
+            <button class="primary" style="flex:1;margin-top:0" data-action="save" data-idx="${i}">Enregistrer</button>
+            <button style="flex:1" data-action="cancel">Annuler</button>
+          </div>
+        </div>`;
+    } else {
+      html += `<div class="hist-item" data-idx="${i}">
         <span class="left"><span class="icon">${c.icon}</span>${e.note ? e.note : c.label}</span>
         <span style="display:flex;align-items:center;gap:10px">
           <span class="amount">${e.amount.toFixed(2)}€</span>
           <span class="delete" data-idx="${i}">✕</span>
         </span>
       </div>`;
-    }).reverse().join('');
-    hist.innerHTML = '<p class="title">Cette semaine</p>' + items;
-    hist.querySelectorAll('.delete').forEach(el=>{
-      el.addEventListener('click', ()=>{
-        const idx = parseInt(el.dataset.idx);
-        entries.splice(idx,1);
-        save();
-        render();
-      });
+    }
+  });
+  hist.innerHTML = html;
+
+  hist.querySelectorAll('.hist-item').forEach(el=>{
+    el.addEventListener('click', (ev)=>{
+      if(ev.target.classList.contains('delete')) return;
+      editingIdx = parseInt(el.dataset.idx);
+      renderHistory();
+    });
+  });
+  hist.querySelectorAll('.delete').forEach(el=>{
+    el.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      const idx = parseInt(el.dataset.idx);
+      entries.splice(idx,1);
+      if(editingIdx === idx) editingIdx = null;
+      saveEntries();
+      renderAll();
+    });
+  });
+  const saveBtn = hist.querySelector('[data-action="save"]');
+  if(saveBtn){
+    saveBtn.addEventListener('click', ()=>{
+      const idx = parseInt(saveBtn.dataset.idx);
+      const row = saveBtn.closest('.edit-row');
+      const cat = row.querySelector('.edit-cat').value;
+      const amount = parseFloat(row.querySelector('.edit-amount').value);
+      const note = row.querySelector('.edit-note').value.trim();
+      if(!amount || amount<=0) return;
+      entries[idx] = { ...entries[idx], cat, amount, note };
+      editingIdx = null;
+      saveEntries();
+      renderAll();
+    });
+  }
+  const cancelBtn = hist.querySelector('[data-action="cancel"]');
+  if(cancelBtn){
+    cancelBtn.addEventListener('click', ()=>{
+      editingIdx = null;
+      renderHistory();
     });
   }
 }
 
-function save(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+function renderSettings(){
+  const panel = document.getElementById('settings');
+  let html = '';
+  CATS.forEach((c, i)=>{
+    html += `
+      <div class="settings-cat">
+        <input class="icon-input" data-idx="${i}" data-field="icon" value="${c.icon}" maxlength="2" />
+        <input class="label-input" data-idx="${i}" data-field="label" value="${c.label.replace(/"/g,'&quot;')}" />
+        <input class="budget-input" data-idx="${i}" data-field="weekly" type="number" inputmode="decimal" step="1" value="${c.weekly}" />
+        <span class="remove" data-idx="${i}">🗑️</span>
+      </div>`;
+  });
+  html += `
+    <div class="add-cat">
+      <p style="font-size:14px;font-weight:600;margin:0">Ajouter une catégorie</p>
+      <div class="row">
+        <input id="new-cat-icon" class="icon-input" placeholder="🎯" maxlength="2" style="width:50px;flex:none" />
+        <input id="new-cat-label" placeholder="Nom" style="flex:1.6" />
+        <input id="new-cat-budget" type="number" inputmode="decimal" placeholder="€/sem" style="flex:1" />
+      </div>
+      <button class="primary" id="add-cat-btn">Ajouter la catégorie</button>
+    </div>
+  `;
+  panel.innerHTML = html;
+
+  panel.querySelectorAll('input[data-idx]').forEach(input=>{
+    input.addEventListener('change', ()=>{
+      const idx = parseInt(input.dataset.idx);
+      const field = input.dataset.field;
+      if(field === 'weekly'){
+        CATS[idx][field] = parseFloat(input.value) || 0;
+      } else {
+        CATS[idx][field] = input.value;
+      }
+      saveCats();
+      populateSelect();
+      renderCats();
+      renderHistory();
+    });
+  });
+  panel.querySelectorAll('.remove').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const idx = parseInt(el.dataset.idx);
+      if(!confirm(`Supprimer "${CATS[idx].label}" ? Les dépenses déjà enregistrées dans cette catégorie resteront mais ne seront plus affichées.`)) return;
+      CATS.splice(idx,1);
+      saveCats();
+      populateSelect();
+      renderAll();
+    });
+  });
+  document.getElementById('add-cat-btn').addEventListener('click', ()=>{
+    const icon = document.getElementById('new-cat-icon').value.trim() || '💰';
+    const label = document.getElementById('new-cat-label').value.trim();
+    const weekly = parseFloat(document.getElementById('new-cat-budget').value) || 0;
+    if(!label) return;
+    const id = 'cat-' + Date.now();
+    CATS.push({ id, label, icon, weekly });
+    saveCats();
+    populateSelect();
+    renderAll();
+  });
 }
+
+function renderAll(){
+  renderWeekLabel();
+  renderCats();
+  renderHistory();
+}
+
+document.getElementById('prev-week').addEventListener('click', ()=>{
+  weekOffset -= 1;
+  editingIdx = null;
+  loadEntries();
+  renderAll();
+});
+document.getElementById('next-week').addEventListener('click', ()=>{
+  weekOffset += 1;
+  editingIdx = null;
+  loadEntries();
+  renderAll();
+});
+
+document.getElementById('settings-btn').addEventListener('click', ()=>{
+  const panel = document.getElementById('settings');
+  if(panel.style.display === 'none'){
+    panel.style.display = 'flex';
+    renderSettings();
+  } else {
+    panel.style.display = 'none';
+  }
+});
 
 document.getElementById('add-btn').addEventListener('click', ()=>{
   const amount = parseFloat(document.getElementById('amount-input').value);
   if(!amount || amount<=0) return;
-  const cat = select.value;
+  const cat = document.getElementById('cat-select').value;
   const note = document.getElementById('note-input').value.trim();
   entries.push({cat, amount, note, ts: Date.now()});
   document.getElementById('amount-input').value = '';
   document.getElementById('note-input').value = '';
-  save();
-  render();
+  saveEntries();
+  renderAll();
 });
 
 document.getElementById('reset-btn').addEventListener('click', ()=>{
-  if(confirm('Réinitialiser toutes les dépenses de cette semaine ?')){
+  if(confirm('Réinitialiser toutes les dépenses de cette semaine affichée ?')){
     entries = [];
-    save();
-    render();
+    editingIdx = null;
+    saveEntries();
+    renderAll();
   }
 });
 
-render();
+populateSelect();
+loadEntries();
+renderAll();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(()=>{});
