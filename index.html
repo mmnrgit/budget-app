@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mon Budget">
+<meta name="theme-color" content="#1D9E75">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>Mon Budget</title>
+<style>
+  :root {
+    --bg: #F7F6F2;
+    --card: #FFFFFF;
+    --border: #E4E2DA;
+    --text: #2C2C2A;
+    --text-secondary: #5F5E5A;
+    --text-tertiary: #888780;
+    --green: #639922;
+    --green-bg: #EAF3DE;
+    --amber: #BA7517;
+    --amber-bg: #FAEEDA;
+    --red: #A32D2D;
+    --red-bg: #FCEBEB;
+    --accent: #1D9E75;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1C1F26;
+      --card: #262A33;
+      --border: #3A3F4A;
+      --text: #F1EFE8;
+      --text-secondary: #B4B2A9;
+      --text-tertiary: #888780;
+      --green: #97C459;
+      --green-bg: #27500A;
+      --amber: #FAC775;
+      --amber-bg: #633806;
+      --red: #F09595;
+      --red-bg: #501313;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+    -webkit-font-smoothing: antialiased;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0 8px;
+  }
+  .header h1 { font-size: 18px; font-weight: 600; margin: 0; }
+  .header p { font-size: 13px; color: var(--text-secondary); margin: 2px 0 0; }
+  button {
+    font-family: inherit;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button:active { transform: scale(0.97); }
+  button.primary {
+    background: var(--accent);
+    color: white;
+    border: none;
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .cats { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 20px; }
+  .cat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .cat-row {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .cat-row .label { display: flex; align-items: center; gap: 8px; }
+  .cat-row .amounts { font-weight: 600; }
+  .cat-row .amounts .total { color: var(--text-tertiary); font-weight: 400; }
+  .bar-bg { height: 8px; border-radius: 6px; background: var(--bg); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 6px; transition: width 0.3s; }
+  .alert { font-size: 12px; margin: 6px 0 0; }
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .form-card p { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
+  select, input {
+    font-family: inherit;
+    font-size: 15px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    width: 100%;
+  }
+  .row { display: flex; gap: 8px; }
+  .history { margin: 20px 0 30px; }
+  .history p.title { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+  .hist-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+  }
+  .hist-item .left { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); }
+  .hist-item .amount { font-weight: 600; }
+  .hist-item .delete { font-size: 18px; color: var(--text-tertiary); padding: 0 4px; cursor: pointer; }
+  .empty { font-size: 13px; color: var(--text-tertiary); text-align: center; padding: 12px 0; }
+  .icon { font-size: 18px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Mon budget</h1>
+    <p id="week-range"></p>
+  </div>
+  <button id="reset-btn">Réinitialiser</button>
+</div>
+
+<div id="cats" class="cats"></div>
+
+<div class="form-card">
+  <p>Ajouter une dépense</p>
+  <div class="row">
+    <select id="cat-select" style="flex:1.4"></select>
+    <input id="amount-input" type="number" inputmode="decimal" min="0" step="0.5" placeholder="€" style="flex:1" />
+  </div>
+  <input id="note-input" type="text" placeholder="Note (optionnel)" />
+  <button id="add-btn" class="primary">Ajouter</button>
+</div>
+
+<div id="history" class="history"></div>
+
+<script>
+const CATS = [
+  { id:'sorties', label:'Sorties & plaisirs', icon:'🎉', weekly:68 },
+  { id:'essence', label:'Essence', icon:'⛽', weekly:46 },
+  { id:'courses', label:'Courses', icon:'🛒', weekly:23 },
+  { id:'clopes', label:'Cigarettes', icon:'🚬', weekly:24 }
+];
+
+function getISOWeekKey(d){
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - dayNum + 3);
+  const firstThursday = date.getTime();
+  date.setUTCMonth(0,1);
+  if(date.getUTCDay() !== 4){
+    date.setUTCMonth(0, 1 + ((4 - date.getUTCDay()) + 7) % 7);
+  }
+  const week = 1 + Math.round((firstThursday - date.getTime()) / (7*86400000));
+  return date.getUTCFullYear() + '-W' + week;
+}
+
+function weekRangeLabel(d){
+  const day = (d.getDay()+6)%7;
+  const monday = new Date(d); monday.setDate(d.getDate()-day);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+  const fmt = x => x.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+  return fmt(monday) + ' – ' + fmt(sunday);
+}
+
+const today = new Date();
+const weekKey = getISOWeekKey(today);
+const STORAGE_KEY = 'expenses-' + weekKey;
+
+let entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+const select = document.getElementById('cat-select');
+CATS.forEach(c=>{
+  const opt = document.createElement('option');
+  opt.value = c.id; opt.textContent = c.icon + ' ' + c.label;
+  select.appendChild(opt);
+});
+document.getElementById('week-range').textContent = weekRangeLabel(today);
+
+function colorFor(ratio){
+  if(ratio < 0.7) return {bar:'var(--green)', bg:'var(--green-bg)'};
+  if(ratio < 1) return {bar:'var(--amber)', bg:'var(--amber-bg)'};
+  return {bar:'var(--red)', bg:'var(--red-bg)'};
+}
+
+function render(){
+  const cats = document.getElementById('cats');
+  cats.innerHTML = '';
+  CATS.forEach(c=>{
+    const spent = entries.filter(e=>e.cat===c.id).reduce((s,e)=>s+e.amount,0);
+    const ratio = spent / c.weekly;
+    const col = colorFor(ratio);
+    const pct = Math.min(100, Math.round(ratio*100));
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    let alert = '';
+    if(ratio>=1){
+      alert = `<p class="alert" style="color:var(--red)">Budget dépassé de ${(spent-c.weekly).toFixed(0)}€</p>`;
+    } else if(ratio>=0.7){
+      alert = `<p class="alert" style="color:var(--amber)">Faut ralentir, plus que ${(c.weekly-spent).toFixed(0)}€</p>`;
+    }
+    card.innerHTML = `
+      <div class="cat-row">
+        <span class="label"><span class="icon">${c.icon}</span>${c.label}</span>
+        <span class="amounts">${spent.toFixed(0)}€ <span class="total">/ ${c.weekly}€</span></span>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${col.bar}"></div></div>
+      ${alert}
+    `;
+    cats.appendChild(card);
+  });
+
+  const hist = document.getElementById('history');
+  if(entries.length===0){
+    hist.innerHTML = '<div class="empty">Aucune dépense enregistrée cette semaine</div>';
+  } else {
+    const items = entries.map((e, i)=>{
+      const c = CATS.find(x=>x.id===e.cat);
+      return `<div class="hist-item">
+        <span class="left"><span class="icon">${c.icon}</span>${e.note ? e.note : c.label}</span>
+        <span style="display:flex;align-items:center;gap:10px">
+          <span class="amount">${e.amount.toFixed(2)}€</span>
+          <span class="delete" data-idx="${i}">✕</span>
+        </span>
+      </div>`;
+    }).reverse().join('');
+    hist.innerHTML = '<p class="title">Cette semaine</p>' + items;
+    hist.querySelectorAll('.delete').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const idx = parseInt(el.dataset.idx);
+        entries.splice(idx,1);
+        save();
+        render();
+      });
+    });
+  }
+}
+
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+document.getElementById('add-btn').addEventListener('click', ()=>{
+  const amount = parseFloat(document.getElementById('amount-input').value);
+  if(!amount || amount<=0) return;
+  const cat = select.value;
+  const note = document.getElementById('note-input').value.trim();
+  entries.push({cat, amount, note, ts: Date.now()});
+  document.getElementById('amount-input').value = '';
+  document.getElementById('note-input').value = '';
+  save();
+  render();
+});
+
+document.getElementById('reset-btn').addEventListener('click', ()=>{
+  if(confirm('Réinitialiser toutes les dépenses de cette semaine ?')){
+    entries = [];
+    save();
+    render();
+  }
+});
+
+render();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
