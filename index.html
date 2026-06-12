@@ -644,7 +644,7 @@ function renderOverview(){
   document.getElementById('goal-bar').style.background = goalRatio >= 1 ? 'var(--green)' : (goalRatio >= 0.4 ? 'var(--amber)' : 'var(--red)');
   const goalAlert = document.getElementById('goal-alert');
   if(goal <= 0){
-    goalAlert.textContent = 'Définis un objectif d\\'épargne mensuel pour suivre ta progression.';
+    goalAlert.textContent = "Définis un objectif d'épargne mensuel pour suivre ta progression.";
     goalAlert.style.color = 'var(--text-tertiary)';
   } else if(balance >= goal){
     goalAlert.textContent = `Objectif atteint ! Tu peux mettre ${Math.max(0,balance).toFixed(0)}€ de côté ce mois-ci 🎉`;
