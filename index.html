@@ -58,12 +58,31 @@
     padding: 16px 0 8px;
   }
   .header h1 { font-size: 18px; font-weight: 600; margin: 0; }
-  .week-nav { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
-  .week-nav button.nav-arrow {
-    border: none; background: none; padding: 2px 4px; font-size: 16px;
-    color: var(--text-secondary); line-height: 1;
+
+  .tabs {
+    display: flex; gap: 6px; margin: 4px 0 14px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px;
   }
-  .week-nav p { font-size: 13px; color: var(--text-secondary); margin: 0; min-width: 110px; text-align: center; }
+  .tab-btn {
+    flex: 1; border: none; background: none; padding: 8px; border-radius: 9px;
+    font-size: 14px; font-weight: 600; color: var(--text-secondary);
+  }
+  .tab-btn.active { background: var(--accent); color: white; }
+
+  .nav-row { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 14px; }
+  .nav-row button.nav-arrow {
+    border: none; background: var(--card); border: 1px solid var(--border); width: 34px; height: 34px;
+    border-radius: 10px; font-size: 16px; color: var(--text-secondary);
+  }
+  .nav-row .nav-label {
+    font-size: 14px; font-weight: 600; min-width: 150px; text-align: center;
+    position: relative;
+  }
+  .nav-row .nav-label input[type=date] {
+    position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; border: none; padding: 0;
+  }
+  .today-link { font-size: 12px; color: var(--accent); text-align: center; margin: -8px 0 14px; cursor: pointer; }
+
   button {
     font-family: inherit;
     border: 1px solid var(--border);
@@ -88,7 +107,7 @@
   button.icon-btn {
     border: none; background: none; font-size: 18px; padding: 4px 6px; color: var(--text-secondary);
   }
-  .cats { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 20px; }
+  .cats { display: flex; flex-direction: column; gap: 10px; margin: 0 0 20px; }
   .cat-card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -111,6 +130,7 @@
     border-radius: 14px;
     padding: 14px;
     display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 16px;
   }
   .form-card p { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
   select, input {
@@ -124,7 +144,7 @@
     width: 100%;
   }
   .row { display: flex; gap: 8px; }
-  .history { margin: 20px 0 30px; }
+  .history { margin: 0 0 30px; }
   .history p.title { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
   .hist-item {
     display: flex; justify-content: space-between; align-items: center;
@@ -136,50 +156,138 @@
   .hist-item .delete { font-size: 18px; color: var(--text-tertiary); padding: 0 4px; cursor: pointer; }
   .empty { font-size: 13px; color: var(--text-tertiary); text-align: center; padding: 12px 0; }
   .icon { font-size: 18px; }
-  .edit-row { display: flex; flex-direction: column; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 10px; }
-  .edit-row .row { gap: 6px; }
+  .edit-row { display: flex; flex-direction: column; gap: 8px; background: var(--bg); border-radius: 10px; padding: 10px; margin: 4px 0; }
   .edit-row .row2 { display: flex; gap: 6px; margin-top: 4px; }
-  .settings-panel { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 20px; }
+  .settings-panel { display: flex; flex-direction: column; gap: 10px; margin: 0 0 20px; }
   .settings-cat { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
   .settings-cat input.icon-input { width: 50px; flex: none; text-align: center; padding: 8px; }
   .settings-cat input.label-input { flex: 1.6; }
   .settings-cat input.budget-input { flex: 1; }
   .settings-cat .remove { font-size: 18px; color: var(--text-tertiary); cursor: pointer; padding: 0 2px; }
   .add-cat { display: flex; flex-direction: column; gap: 8px; background: var(--card); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; }
-  .toggle-link { font-size: 13px; color: var(--accent); text-align: center; padding: 8px 0; cursor: pointer; }
+  .toggle-link { font-size: 13px; color: var(--accent); text-align: center; padding: 8px 0 24px; cursor: pointer; }
+
+  .summary-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px; margin-bottom: 12px;
+  }
+  .summary-card .title { font-size: 13px; color: var(--text-secondary); margin: 0 0 4px; }
+  .summary-card .big { font-size: 26px; font-weight: 700; margin: 0; }
+  .summary-grid { display: flex; gap: 10px; margin-bottom: 12px; }
+  .summary-grid .summary-card { flex: 1; margin-bottom: 0; }
+  .income-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+  }
+  .income-item .left { color: var(--text-secondary); display:flex; align-items:center; gap:8px; }
+  .income-item .amount { font-weight: 600; color: var(--green); }
+  .chart-wrap { overflow-x: auto; }
+  .section-title { font-size: 15px; font-weight: 600; margin: 18px 0 8px; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div>
-    <h1>Mon budget</h1>
-    <div class="week-nav">
-      <button class="nav-arrow" id="prev-week">←</button>
-      <p id="week-range"></p>
-      <button class="nav-arrow" id="next-week">→</button>
+  <h1>Mon budget</h1>
+  <div style="display:flex;gap:2px">
+    <button class="icon-btn" id="settings-btn" title="Catégories">⚙️</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" id="tab-track">Suivi</button>
+  <button class="tab-btn" id="tab-overview">Résumé</button>
+</div>
+
+<!-- TRACK TAB -->
+<div id="view-track">
+
+  <div class="nav-row">
+    <button class="nav-arrow" id="prev-week">←</button>
+    <div class="nav-label" id="week-range-wrap">
+      <span id="week-range"></span>
+      <input type="date" id="week-date-picker" />
+    </div>
+    <button class="nav-arrow" id="next-week">→</button>
+  </div>
+  <div class="today-link" id="today-week-link">Revenir à cette semaine</div>
+
+  <div id="settings" class="settings-panel" style="display:none"></div>
+
+  <div id="cats" class="cats"></div>
+
+  <div class="form-card">
+    <p>Ajouter une dépense</p>
+    <div class="row">
+      <select id="cat-select" style="flex:1.4"></select>
+      <input id="amount-input" type="number" inputmode="decimal" min="0" step="0.5" placeholder="€" style="flex:1" />
+    </div>
+    <input id="note-input" type="text" placeholder="Note (optionnel)" />
+    <button id="add-btn" class="primary">Ajouter</button>
+  </div>
+
+  <div id="history" class="history"></div>
+
+  <div class="toggle-link" id="reset-btn">Réinitialiser cette semaine</div>
+</div>
+
+<!-- OVERVIEW TAB -->
+<div id="view-overview" style="display:none">
+
+  <div class="nav-row">
+    <button class="nav-arrow" id="prev-month">←</button>
+    <div class="nav-label" id="month-label"></div>
+    <button class="nav-arrow" id="next-month">→</button>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <p class="title">Revenus</p>
+      <p class="big" id="sum-income" style="color:var(--green)"></p>
+    </div>
+    <div class="summary-card">
+      <p class="title">Dépenses</p>
+      <p class="big" id="sum-expenses"></p>
     </div>
   </div>
-  <button class="icon-btn" id="settings-btn" title="Catégories">⚙️</button>
-</div>
-
-<div id="cats" class="cats"></div>
-
-<div id="settings" class="settings-panel" style="display:none"></div>
-
-<div class="form-card">
-  <p>Ajouter une dépense</p>
-  <div class="row">
-    <select id="cat-select" style="flex:1.4"></select>
-    <input id="amount-input" type="number" inputmode="decimal" min="0" step="0.5" placeholder="€" style="flex:1" />
+  <div class="summary-card">
+    <p class="title">Solde du mois</p>
+    <p class="big" id="sum-balance"></p>
+    <div class="bar-bg" style="margin-top:8px"><div class="bar-fill" id="balance-bar"></div></div>
+    <p class="alert" id="balance-alert" style="margin-top:8px"></p>
   </div>
-  <input id="note-input" type="text" placeholder="Note (optionnel)" />
-  <button id="add-btn" class="primary">Ajouter</button>
+
+  <div class="section-title">Revenus du mois</div>
+  <div id="income-list"></div>
+  <div class="form-card">
+    <p>Ajouter un revenu (salaire, prime...)</p>
+    <div class="row">
+      <input id="income-amount" type="number" inputmode="decimal" min="0" step="1" placeholder="€" style="flex:1" />
+      <input id="income-note" type="text" placeholder="Note (ex: Salaire)" style="flex:1.6" />
+    </div>
+    <button id="add-income-btn" class="primary">Ajouter</button>
+  </div>
+
+  <div class="section-title">Dépenses par catégorie</div>
+  <div id="cat-breakdown" class="cats"></div>
+
+  <div class="section-title">Tendance (8 dernières semaines)</div>
+  <div class="summary-card chart-wrap">
+    <svg id="trend-chart" width="100%" height="140" viewBox="0 0 320 140" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="section-title">Objectif d'épargne</div>
+  <div class="summary-card">
+    <div class="row">
+      <input id="savings-goal-input" type="number" inputmode="decimal" min="0" step="10" placeholder="€ par mois" style="flex:1" />
+      <button id="save-goal-btn">Enregistrer</button>
+    </div>
+    <div class="bar-bg" style="margin-top:10px"><div class="bar-fill" id="goal-bar"></div></div>
+    <p class="alert" id="goal-alert" style="margin-top:8px"></p>
+  </div>
+
+  <div style="height:20px"></div>
 </div>
-
-<div id="history" class="history"></div>
-
-<div class="toggle-link" id="reset-btn">Réinitialiser cette semaine</div>
 
 <script>
 const DEFAULT_CATS = [
@@ -191,9 +299,11 @@ const DEFAULT_CATS = [
 
 let CATS = JSON.parse(localStorage.getItem('categories') || 'null') || DEFAULT_CATS;
 let weekOffset = 0;
+let monthOffset = 0;
 let entries = [];
 let editingIdx = null;
 
+/* ---------- date helpers ---------- */
 function getMonday(d, offset=0){
   const date = new Date(d);
   const day = (date.getDay()+6)%7;
@@ -201,44 +311,63 @@ function getMonday(d, offset=0){
   date.setHours(0,0,0,0);
   return date;
 }
-
-function storageKeyFor(monday){
-  const y = monday.getFullYear();
-  const m = String(monday.getMonth()+1).padStart(2,'0');
-  const d = String(monday.getDate()).padStart(2,'0');
-  return 'expenses-' + y + '-' + m + '-' + d;
-}
-
+function pad(n){ return String(n).padStart(2,'0'); }
+function isoDate(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function storageKeyFor(monday){ return 'expenses-' + isoDate(monday); }
 function weekRangeLabel(monday){
   const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
   const fmt = x => x.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
   return fmt(monday) + ' – ' + fmt(sunday);
 }
+function currentMonday(){ return getMonday(new Date(), weekOffset); }
+function monthDate(){
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() + monthOffset, 1);
+}
+function monthKey(d){ return 'income-' + d.getFullYear() + '-' + pad(d.getMonth()+1); }
+function monthLabel(d){
+  return d.toLocaleDateString('fr-FR',{month:'long', year:'numeric'});
+}
 
+/* ---------- storage ---------- */
+function loadEntries(){ entries = JSON.parse(localStorage.getItem(storageKeyFor(currentMonday())) || '[]'); }
+function saveEntries(){ localStorage.setItem(storageKeyFor(currentMonday()), JSON.stringify(entries)); }
+function saveCats(){ localStorage.setItem('categories', JSON.stringify(CATS)); }
+function getIncomes(d){ return JSON.parse(localStorage.getItem(monthKey(d)) || '[]'); }
+function saveIncomes(d, list){ localStorage.setItem(monthKey(d), JSON.stringify(list)); }
+function getGoal(){ return parseFloat(localStorage.getItem('savingsGoal') || '0'); }
+function setGoal(v){ localStorage.setItem('savingsGoal', String(v)); }
+
+/* every "expenses-*" entry whose ts falls within the given month */
+function getMonthExpenses(d){
+  const y = d.getFullYear(), m = d.getMonth();
+  let all = [];
+  for(let i=0;i<localStorage.length;i++){
+    const key = localStorage.key(i);
+    if(!key.startsWith('expenses-')) continue;
+    const list = JSON.parse(localStorage.getItem(key) || '[]');
+    list.forEach(e=>{
+      const dt = new Date(e.ts);
+      if(dt.getFullYear()===y && dt.getMonth()===m) all.push(e);
+    });
+  }
+  return all;
+}
+
+/* totals for the week starting at "monday" */
+function getWeekTotal(monday){
+  const list = JSON.parse(localStorage.getItem(storageKeyFor(monday)) || '[]');
+  return list.reduce((s,e)=>s+e.amount,0);
+}
+
+/* ---------- colors ---------- */
 function colorFor(ratio){
   if(ratio < 0.7) return 'var(--green)';
   if(ratio < 1) return 'var(--amber)';
   return 'var(--red)';
 }
 
-function currentMonday(){
-  return getMonday(new Date(), weekOffset);
-}
-
-function loadEntries(){
-  const key = storageKeyFor(currentMonday());
-  entries = JSON.parse(localStorage.getItem(key) || '[]');
-}
-
-function saveEntries(){
-  const key = storageKeyFor(currentMonday());
-  localStorage.setItem(key, JSON.stringify(entries));
-}
-
-function saveCats(){
-  localStorage.setItem('categories', JSON.stringify(CATS));
-}
-
+/* ============ TRACK TAB ============ */
 function populateSelect(){
   const select = document.getElementById('cat-select');
   const prev = select.value;
@@ -253,6 +382,8 @@ function populateSelect(){
 
 function renderWeekLabel(){
   document.getElementById('week-range').textContent = weekRangeLabel(currentMonday());
+  document.getElementById('week-date-picker').value = isoDate(currentMonday());
+  document.getElementById('today-week-link').style.display = weekOffset === 0 ? 'none' : 'block';
 }
 
 function renderCats(){
@@ -331,7 +462,7 @@ function renderHistory(){
       entries.splice(idx,1);
       if(editingIdx === idx) editingIdx = null;
       saveEntries();
-      renderAll();
+      renderTrack();
     });
   });
   const saveBtn = hist.querySelector('[data-action="save"]');
@@ -346,7 +477,7 @@ function renderHistory(){
       entries[idx] = { ...entries[idx], cat, amount, note };
       editingIdx = null;
       saveEntries();
-      renderAll();
+      renderTrack();
     });
   }
   const cancelBtn = hist.querySelector('[data-action="cancel"]');
@@ -394,8 +525,7 @@ function renderSettings(){
       }
       saveCats();
       populateSelect();
-      renderCats();
-      renderHistory();
+      renderTrack();
     });
   });
   panel.querySelectorAll('.remove').forEach(el=>{
@@ -405,7 +535,7 @@ function renderSettings(){
       CATS.splice(idx,1);
       saveCats();
       populateSelect();
-      renderAll();
+      renderTrack();
     });
   });
   document.getElementById('add-cat-btn').addEventListener('click', ()=>{
@@ -417,27 +547,172 @@ function renderSettings(){
     CATS.push({ id, label, icon, weekly });
     saveCats();
     populateSelect();
-    renderAll();
+    renderTrack();
   });
 }
 
-function renderAll(){
+function renderTrack(){
   renderWeekLabel();
   renderCats();
   renderHistory();
 }
 
+/* ============ OVERVIEW TAB ============ */
+function renderOverview(){
+  const md = monthDate();
+  document.getElementById('month-label').textContent = monthLabel(md).replace(/^./, c=>c.toUpperCase());
+
+  const incomes = getIncomes(md);
+  const totalIncome = incomes.reduce((s,e)=>s+e.amount,0);
+  const monthExpenses = getMonthExpenses(md);
+  const totalExpenses = monthExpenses.reduce((s,e)=>s+e.amount,0);
+  const balance = totalIncome - totalExpenses;
+
+  document.getElementById('sum-income').textContent = totalIncome.toFixed(0) + '€';
+  document.getElementById('sum-expenses').textContent = totalExpenses.toFixed(0) + '€';
+  const balEl = document.getElementById('sum-balance');
+  balEl.textContent = (balance>=0?'+':'') + balance.toFixed(0) + '€';
+  balEl.style.color = balance >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const balRatio = totalIncome > 0 ? Math.min(1, totalExpenses/totalIncome) : 0;
+  document.getElementById('balance-bar').style.width = Math.round(balRatio*100) + '%';
+  document.getElementById('balance-bar').style.background = colorFor(balRatio);
+  const balAlert = document.getElementById('balance-alert');
+  if(totalIncome === 0){
+    balAlert.textContent = 'Ajoute ton salaire ci-dessous pour voir ton solde réel.';
+    balAlert.style.color = 'var(--text-tertiary)';
+  } else if(balance < 0){
+    balAlert.textContent = `Tu es en négatif de ${Math.abs(balance).toFixed(0)}€ ce mois-ci.`;
+    balAlert.style.color = 'var(--red)';
+  } else {
+    balAlert.textContent = `Il te reste ${balance.toFixed(0)}€ ce mois-ci.`;
+    balAlert.style.color = 'var(--green)';
+  }
+
+  // income list
+  const list = document.getElementById('income-list');
+  if(incomes.length === 0){
+    list.innerHTML = '<div class="empty">Aucun revenu enregistré ce mois</div>';
+  } else {
+    list.innerHTML = incomes.map((inc,i)=>`
+      <div class="income-item">
+        <span class="left">💶 ${inc.note || 'Revenu'}</span>
+        <span style="display:flex;align-items:center;gap:10px">
+          <span class="amount">+${inc.amount.toFixed(0)}€</span>
+          <span class="delete" data-idx="${i}" style="font-size:18px;color:var(--text-tertiary);cursor:pointer">✕</span>
+        </span>
+      </div>`).join('');
+    list.querySelectorAll('.delete').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const idx = parseInt(el.dataset.idx);
+        const updated = getIncomes(md);
+        updated.splice(idx,1);
+        saveIncomes(md, updated);
+        renderOverview();
+      });
+    });
+  }
+
+  // category breakdown for the month
+  const weeksInMonth = 30/7;
+  const breakdown = document.getElementById('cat-breakdown');
+  breakdown.innerHTML = '';
+  CATS.forEach(c=>{
+    const spent = monthExpenses.filter(e=>e.cat===c.id).reduce((s,e)=>s+e.amount,0);
+    const monthlyBudget = c.weekly * 4.345;
+    const ratio = monthlyBudget > 0 ? spent/monthlyBudget : 0;
+    const pct = Math.min(100, Math.round(ratio*100));
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    card.innerHTML = `
+      <div class="cat-row">
+        <span class="label"><span class="icon">${c.icon}</span>${c.label}</span>
+        <span class="amounts">${spent.toFixed(0)}€ <span class="total">/ ${monthlyBudget.toFixed(0)}€</span></span>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${colorFor(ratio)}"></div></div>
+    `;
+    breakdown.appendChild(card);
+  });
+
+  renderTrendChart();
+
+  // savings goal
+  const goal = getGoal();
+  document.getElementById('savings-goal-input').value = goal || '';
+  const goalRatio = goal > 0 ? Math.min(1, Math.max(0, balance)/goal) : 0;
+  document.getElementById('goal-bar').style.width = Math.round(goalRatio*100) + '%';
+  document.getElementById('goal-bar').style.background = goalRatio >= 1 ? 'var(--green)' : (goalRatio >= 0.4 ? 'var(--amber)' : 'var(--red)');
+  const goalAlert = document.getElementById('goal-alert');
+  if(goal <= 0){
+    goalAlert.textContent = 'Définis un objectif d\\'épargne mensuel pour suivre ta progression.';
+    goalAlert.style.color = 'var(--text-tertiary)';
+  } else if(balance >= goal){
+    goalAlert.textContent = `Objectif atteint ! Tu peux mettre ${Math.max(0,balance).toFixed(0)}€ de côté ce mois-ci 🎉`;
+    goalAlert.style.color = 'var(--green)';
+  } else {
+    const remaining = goal - Math.max(0,balance);
+    goalAlert.textContent = `Encore ${remaining.toFixed(0)}€ pour atteindre ton objectif de ${goal.toFixed(0)}€.`;
+    goalAlert.style.color = 'var(--amber)';
+  }
+}
+
+function renderTrendChart(){
+  const svg = document.getElementById('trend-chart');
+  const weeklyBudgetTotal = CATS.reduce((s,c)=>s+c.weekly,0);
+  const weeks = [];
+  for(let i=7;i>=0;i--){
+    const monday = getMonday(new Date(), -i);
+    weeks.push({ label: monday.toLocaleDateString('fr-FR',{day:'numeric',month:'numeric'}), total: getWeekTotal(monday) });
+  }
+  const maxVal = Math.max(weeklyBudgetTotal, ...weeks.map(w=>w.total), 1);
+  const W = 320, H = 140, padBottom = 20, padTop = 10;
+  const barW = (W / weeks.length) * 0.55;
+  const gap = (W / weeks.length);
+
+  let svgContent = '';
+  // budget reference line
+  const budgetY = padTop + (H - padTop - padBottom) * (1 - weeklyBudgetTotal/maxVal);
+  svgContent += `<line x1="0" y1="${budgetY}" x2="${W}" y2="${budgetY}" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="4,3" />`;
+
+  weeks.forEach((w,i)=>{
+    const barH = (H - padTop - padBottom) * (w.total/maxVal);
+    const x = i*gap + (gap-barW)/2;
+    const y = (H - padBottom) - barH;
+    const col = w.total > weeklyBudgetTotal ? 'var(--red)' : 'var(--accent)';
+    svgContent += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${col}" />`;
+    svgContent += `<text x="${x + barW/2}" y="${H-6}" font-size="9" fill="var(--text-tertiary)" text-anchor="middle">${w.label}</text>`;
+  });
+  svg.innerHTML = svgContent;
+}
+
+/* ============ TAB SWITCHING ============ */
+function switchTab(tab){
+  document.getElementById('view-track').style.display = tab==='track' ? 'block' : 'none';
+  document.getElementById('view-overview').style.display = tab==='overview' ? 'block' : 'none';
+  document.getElementById('tab-track').classList.toggle('active', tab==='track');
+  document.getElementById('tab-overview').classList.toggle('active', tab==='overview');
+  document.getElementById('settings-btn').style.display = tab==='track' ? '' : 'none';
+  if(tab==='overview') renderOverview();
+}
+document.getElementById('tab-track').addEventListener('click', ()=>switchTab('track'));
+document.getElementById('tab-overview').addEventListener('click', ()=>switchTab('overview'));
+
+/* ============ EVENTS: TRACK ============ */
 document.getElementById('prev-week').addEventListener('click', ()=>{
-  weekOffset -= 1;
-  editingIdx = null;
-  loadEntries();
-  renderAll();
+  weekOffset -= 1; editingIdx = null; loadEntries(); renderTrack();
 });
 document.getElementById('next-week').addEventListener('click', ()=>{
-  weekOffset += 1;
-  editingIdx = null;
-  loadEntries();
-  renderAll();
+  weekOffset += 1; editingIdx = null; loadEntries(); renderTrack();
+});
+document.getElementById('today-week-link').addEventListener('click', ()=>{
+  weekOffset = 0; editingIdx = null; loadEntries(); renderTrack();
+});
+document.getElementById('week-date-picker').addEventListener('change', (e)=>{
+  const picked = new Date(e.target.value + 'T00:00:00');
+  const pickedMonday = getMonday(picked, 0);
+  const thisMonday = getMonday(new Date(), 0);
+  weekOffset = Math.round((pickedMonday - thisMonday) / (7*86400000));
+  editingIdx = null; loadEntries(); renderTrack();
 });
 
 document.getElementById('settings-btn').addEventListener('click', ()=>{
@@ -459,7 +734,7 @@ document.getElementById('add-btn').addEventListener('click', ()=>{
   document.getElementById('amount-input').value = '';
   document.getElementById('note-input').value = '';
   saveEntries();
-  renderAll();
+  renderTrack();
 });
 
 document.getElementById('reset-btn').addEventListener('click', ()=>{
@@ -467,13 +742,37 @@ document.getElementById('reset-btn').addEventListener('click', ()=>{
     entries = [];
     editingIdx = null;
     saveEntries();
-    renderAll();
+    renderTrack();
   }
 });
 
+/* ============ EVENTS: OVERVIEW ============ */
+document.getElementById('prev-month').addEventListener('click', ()=>{ monthOffset -= 1; renderOverview(); });
+document.getElementById('next-month').addEventListener('click', ()=>{ monthOffset += 1; renderOverview(); });
+
+document.getElementById('add-income-btn').addEventListener('click', ()=>{
+  const amount = parseFloat(document.getElementById('income-amount').value);
+  if(!amount || amount<=0) return;
+  const note = document.getElementById('income-note').value.trim();
+  const md = monthDate();
+  const list = getIncomes(md);
+  list.push({ amount, note, ts: Date.now() });
+  saveIncomes(md, list);
+  document.getElementById('income-amount').value = '';
+  document.getElementById('income-note').value = '';
+  renderOverview();
+});
+
+document.getElementById('save-goal-btn').addEventListener('click', ()=>{
+  const v = parseFloat(document.getElementById('savings-goal-input').value) || 0;
+  setGoal(v);
+  renderOverview();
+});
+
+/* ============ INIT ============ */
 populateSelect();
 loadEntries();
-renderAll();
+renderTrack();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(()=>{});
