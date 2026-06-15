@@ -393,15 +393,8 @@ function renderAllowanceCard(){
     </div>`;
 }
 
-function getWeeklyAllowance(){
-  const md = monthDate();
-  const incomes = getIncomes(md);
-  const totalIncome = incomes.reduce((s,e)=>s+e.amount, 0);
-  const fixed = getFixedCharges().reduce((s,c)=>s+c.amount, 0);
-  const disposable = totalIncome - fixed;
-  return { disposable, weekly: disposable / 4.345, totalIncome, fixed };
-}
 function saveEntries(){ localStorage.setItem(storageKeyFor(currentMonday()), JSON.stringify(entries)); }
+function loadEntries(){ entries = JSON.parse(localStorage.getItem(storageKeyFor(currentMonday())) || '[]'); }
 function saveCats(){ localStorage.setItem('categories', JSON.stringify(CATS)); }
 function getIncomes(d){ return JSON.parse(localStorage.getItem(monthKey(d)) || '[]'); }
 function saveIncomes(d, list){ localStorage.setItem(monthKey(d), JSON.stringify(list)); }
