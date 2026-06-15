@@ -167,6 +167,20 @@
   .add-cat { display: flex; flex-direction: column; gap: 8px; background: var(--card); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; }
   .toggle-link { font-size: 13px; color: var(--accent); text-align: center; padding: 8px 0 24px; cursor: pointer; }
 
+  .allowance-card {
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .allowance-card .left-block p { margin: 0; }
+  .allowance-card .label { font-size: 13px; opacity: 0.85; margin-bottom: 4px !important; }
+  .allowance-card .amount-big { font-size: 32px; font-weight: 800; }
+  .allowance-card .sub { font-size: 12px; opacity: 0.75; margin-top: 4px !important; }
+  .allowance-card .emoji-block { font-size: 40px; }
+
   .summary-card {
     background: var(--card); border: 1px solid var(--border); border-radius: 14px;
     padding: 14px; margin-bottom: 12px;
@@ -213,6 +227,8 @@
   <div class="today-link" id="today-week-link">Revenir à cette semaine</div>
 
   <div id="settings" class="settings-panel" style="display:none"></div>
+
+  <div id="allowance-card"></div>
 
   <div id="cats" class="cats"></div>
 
@@ -330,7 +346,61 @@ function monthLabel(d){
 }
 
 /* ---------- storage ---------- */
-function loadEntries(){ entries = JSON.parse(localStorage.getItem(storageKeyFor(currentMonday())) || '[]'); }
+function getFixedCharges(){ return JSON.parse(localStorage.getItem('fixedCharges') || '[]'); }
+function saveFixedCharges(list){ localStorage.setItem('fixedCharges', JSON.stringify(list)); }
+
+function getWeeklyAllowance(){
+  // Get monthly income from current month incomes
+  const md = monthDate();
+  const incomes = getIncomes(md);
+  const totalIncome = incomes.reduce((s,e)=>s+e.amount, 0);
+  const fixed = getFixedCharges().reduce((s,c)=>s+c.amount, 0);
+  const disposable = totalIncome - fixed;
+  return { disposable, weekly: disposable / 4.345, totalIncome, fixed };
+}
+
+function renderAllowanceCard(){
+  const el = document.getElementById('allowance-card');
+  const weeklySpent = entries.reduce((s,e)=>s+e.amount, 0);
+  const { weekly, totalIncome, fixed } = getWeeklyAllowance();
+
+  if(totalIncome === 0){
+    el.innerHTML = `
+      <div class="summary-card" style="margin-bottom:16px">
+        <p style="font-size:13px;color:var(--text-secondary);margin:0">
+          💡 Ajoute ton salaire dans l'onglet <strong>Résumé</strong> pour voir combien tu peux dépenser cette semaine.
+        </p>
+      </div>`;
+    return;
+  }
+
+  const remaining = weekly - weeklySpent;
+  const ratio = weeklySpent / weekly;
+  let bg, color, emoji;
+  if(ratio < 0.7){ bg = 'var(--green)'; color = 'white'; emoji = '😎'; }
+  else if(ratio < 1){ bg = 'var(--amber)'; color = 'white'; emoji = '⚠️'; }
+  else { bg = 'var(--red)'; color = 'white'; emoji = '🚨'; }
+
+  const sign = remaining >= 0 ? '' : '-';
+  el.innerHTML = `
+    <div class="allowance-card" style="background:${bg};color:${color}">
+      <div class="left-block">
+        <p class="label">Budget semaine disponible</p>
+        <p class="amount-big">${sign}${Math.abs(remaining).toFixed(0)}€</p>
+        <p class="sub">Budget: ${weekly.toFixed(0)}€ · Dépensé: ${weeklySpent.toFixed(0)}€</p>
+      </div>
+      <div class="emoji-block">${emoji}</div>
+    </div>`;
+}
+
+function getWeeklyAllowance(){
+  const md = monthDate();
+  const incomes = getIncomes(md);
+  const totalIncome = incomes.reduce((s,e)=>s+e.amount, 0);
+  const fixed = getFixedCharges().reduce((s,c)=>s+c.amount, 0);
+  const disposable = totalIncome - fixed;
+  return { disposable, weekly: disposable / 4.345, totalIncome, fixed };
+}
 function saveEntries(){ localStorage.setItem(storageKeyFor(currentMonday()), JSON.stringify(entries)); }
 function saveCats(){ localStorage.setItem('categories', JSON.stringify(CATS)); }
 function getIncomes(d){ return JSON.parse(localStorage.getItem(monthKey(d)) || '[]'); }
@@ -491,7 +561,8 @@ function renderHistory(){
 
 function renderSettings(){
   const panel = document.getElementById('settings');
-  let html = '';
+  const fixed = getFixedCharges();
+  let html = '<p style="font-size:14px;font-weight:600;margin:0 0 6px">Catégories variables</p>';
   CATS.forEach((c, i)=>{
     html += `
       <div class="settings-cat">
@@ -510,6 +581,28 @@ function renderSettings(){
         <input id="new-cat-budget" type="number" inputmode="decimal" placeholder="€/sem" style="flex:1" />
       </div>
       <button class="primary" id="add-cat-btn">Ajouter la catégorie</button>
+    </div>
+    <p style="font-size:14px;font-weight:600;margin:10px 0 6px">Charges fixes mensuelles</p>
+    <p style="font-size:12px;color:var(--text-tertiary);margin:-2px 0 6px">Ces montants sont déduits de ton salaire pour calculer ton budget semaine.</p>
+  `;
+  fixed.forEach((f, i)=>{
+    html += `
+      <div class="settings-cat">
+        <span style="font-size:20px">${f.icon||'💸'}</span>
+        <input class="label-input" data-fidx="${i}" data-field="label" value="${f.label.replace(/"/g,'&quot;')}" />
+        <input class="budget-input" data-fidx="${i}" data-field="amount" type="number" inputmode="decimal" step="1" value="${f.amount}" />
+        <span class="remove" data-fidx="${i}">🗑️</span>
+      </div>`;
+  });
+  html += `
+    <div class="add-cat">
+      <p style="font-size:14px;font-weight:600;margin:0">Ajouter une charge fixe</p>
+      <div class="row">
+        <input id="new-fixed-icon" class="icon-input" placeholder="🏠" maxlength="2" style="width:50px;flex:none" />
+        <input id="new-fixed-label" placeholder="Ex: Loyer" style="flex:1.6" />
+        <input id="new-fixed-amount" type="number" inputmode="decimal" placeholder="€/mois" style="flex:1" />
+      </div>
+      <button class="primary" id="add-fixed-btn">Ajouter la charge</button>
     </div>
   `;
   panel.innerHTML = html;
@@ -549,10 +642,45 @@ function renderSettings(){
     populateSelect();
     renderTrack();
   });
+
+  // fixed charges events
+  panel.querySelectorAll('input[data-fidx]').forEach(input=>{
+    input.addEventListener('change', ()=>{
+      const idx = parseInt(input.dataset.fidx);
+      const field = input.dataset.field;
+      const list = getFixedCharges();
+      if(field === 'amount') list[idx][field] = parseFloat(input.value) || 0;
+      else list[idx][field] = input.value;
+      saveFixedCharges(list);
+      renderAllowanceCard();
+    });
+  });
+  panel.querySelectorAll('.remove[data-fidx]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const idx = parseInt(el.dataset.fidx);
+      const list = getFixedCharges();
+      list.splice(idx,1);
+      saveFixedCharges(list);
+      renderSettings();
+      renderAllowanceCard();
+    });
+  });
+  document.getElementById('add-fixed-btn').addEventListener('click', ()=>{
+    const icon = document.getElementById('new-fixed-icon').value.trim() || '💸';
+    const label = document.getElementById('new-fixed-label').value.trim();
+    const amount = parseFloat(document.getElementById('new-fixed-amount').value) || 0;
+    if(!label || !amount) return;
+    const list = getFixedCharges();
+    list.push({ icon, label, amount });
+    saveFixedCharges(list);
+    renderSettings();
+    renderAllowanceCard();
+  });
 }
 
 function renderTrack(){
   renderWeekLabel();
+  renderAllowanceCard();
   renderCats();
   renderHistory();
 }
@@ -565,7 +693,9 @@ function renderOverview(){
   const incomes = getIncomes(md);
   const totalIncome = incomes.reduce((s,e)=>s+e.amount,0);
   const monthExpenses = getMonthExpenses(md);
-  const totalExpenses = monthExpenses.reduce((s,e)=>s+e.amount,0);
+  const totalVariableExpenses = monthExpenses.reduce((s,e)=>s+e.amount,0);
+  const fixedTotal = getFixedCharges().reduce((s,c)=>s+c.amount,0);
+  const totalExpenses = totalVariableExpenses + fixedTotal;
   const balance = totalIncome - totalExpenses;
 
   document.getElementById('sum-income').textContent = totalIncome.toFixed(0) + '€';
