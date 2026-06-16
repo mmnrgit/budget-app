@@ -404,12 +404,13 @@ function renderAllowanceCard(){
   else { bg = 'var(--red)'; color = 'white'; emoji = '🚨'; }
 
   const sign = remaining >= 0 ? '' : '-';
+  const mainLabel = remaining >= 0 ? "à dispatcher cette semaine" : "de dépassement";
   el.innerHTML = `
     <div class="allowance-card" style="background:${bg};color:${color}">
       <div class="left-block">
-        <p class="label">Budget semaine disponible</p>
+        <p class="label">${remaining >= 0 ? 'Reste' : 'Tu as dépassé de'}</p>
         <p class="amount-big">${sign}${Math.abs(remaining).toFixed(0)}€</p>
-        <p class="sub">Budget: ${weekly.toFixed(0)}€ · Dépensé: ${weeklySpent.toFixed(0)}€ · ${daysLeftInMonth}j restants ce mois</p>
+        <p class="sub">${mainLabel} · Budget: ${weekly.toFixed(0)}€ · Dépensé: ${weeklySpent.toFixed(0)}€ · ${daysLeftInMonth}j restants ce mois</p>
       </div>
       <div class="emoji-block">${emoji}</div>
     </div>`;
@@ -574,10 +575,44 @@ function renderHistory(){
   }
 }
 
+function renderAllocTracker(){
+  const el = document.getElementById('alloc-tracker');
+  if(!el) return;
+  const { weekly: weeklyAvailable, totalIncome } = getWeeklyAllowance();
+  const totalAllocated = CATS.reduce((s,c)=>s+(parseFloat(c.weekly)||0), 0);
+
+  if(totalIncome === 0){
+    el.innerHTML = `<div class="summary-card" style="margin-bottom:14px">
+      <p style="font-size:13px;color:var(--text-secondary);margin:0">Ajoute ton salaire dans l'onglet Résumé pour comparer tes budgets catégories au budget semaine réel.</p>
+    </div>`;
+    return;
+  }
+
+  const ratio = weeklyAvailable > 0 ? totalAllocated / weeklyAvailable : 0;
+  const over = totalAllocated - weeklyAvailable;
+  const col = colorFor(ratio);
+
+  el.innerHTML = `
+    <div class="summary-card" style="margin-bottom:14px">
+      <div class="cat-row" style="margin-bottom:8px">
+        <span style="font-size:13px;color:var(--text-secondary)">Total alloué aux catégories</span>
+        <span style="font-weight:700">${totalAllocated.toFixed(0)}€ <span style="color:var(--text-tertiary);font-weight:400">/ ${weeklyAvailable.toFixed(0)}€ dispo</span></span>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,Math.round(ratio*100))}%;background:${col}"></div></div>
+      ${over > 0
+        ? `<p class="alert" style="color:var(--red)">Tu alloues ${over.toFixed(0)}€ de trop par rapport à ton budget semaine réel — réduis une catégorie.</p>`
+        : `<p class="alert" style="color:var(--green)">Il reste ${Math.abs(over).toFixed(0)}€ non alloués, tu peux les laisser en marge ou en ajouter à une catégorie.</p>`}
+    </div>`;
+}
+
 function renderSettings(){
   const panel = document.getElementById('settings');
   const fixed = getFixedCharges();
-  let html = '<p style="font-size:14px;font-weight:600;margin:0 0 6px">Catégories variables</p>';
+  const { weekly: weeklyAvailable } = getWeeklyAllowance();
+  const totalAllocated = CATS.reduce((s,c)=>s+ (parseFloat(c.weekly)||0), 0);
+
+  let html = `<div id="alloc-tracker"></div>`;
+  html += '<p style="font-size:14px;font-weight:600;margin:0 0 6px">Catégories variables</p>';
   CATS.forEach((c, i)=>{
     html += `
       <div class="settings-cat">
@@ -621,6 +656,15 @@ function renderSettings(){
     </div>
   `;
   panel.innerHTML = html;
+  renderAllocTracker();
+
+  panel.querySelectorAll('input[data-idx][data-field="weekly"]').forEach(input=>{
+    input.addEventListener('input', ()=>{
+      const idx = parseInt(input.dataset.idx);
+      CATS[idx].weekly = parseFloat(input.value) || 0;
+      renderAllocTracker();
+    });
+  });
 
   panel.querySelectorAll('input[data-idx]').forEach(input=>{
     input.addEventListener('change', ()=>{
