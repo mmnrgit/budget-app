@@ -197,9 +197,17 @@
   .income-item .amount { font-weight: 600; color: var(--green); }
   .chart-wrap { overflow-x: auto; }
   .section-title { font-size: 15px; font-weight: 600; margin: 18px 0 8px; }
+
+  #pull-indicator {
+    position: fixed; top: 0; left: 0; right: 0; height: 0; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: var(--text-secondary); transition: height 0.15s;
+    z-index: 999; background: var(--bg);
+  }
 </style>
 </head>
 <body>
+<div id="pull-indicator">↓ Tire pour rafraîchir</div>
 
 <div class="header">
   <h1>Mon budget</h1>
@@ -350,19 +358,33 @@ function getFixedCharges(){ return JSON.parse(localStorage.getItem('fixedCharges
 function saveFixedCharges(list){ localStorage.setItem('fixedCharges', JSON.stringify(list)); }
 
 function getWeeklyAllowance(){
-  // Get monthly income from current month incomes
-  const md = monthDate();
-  const incomes = getIncomes(md);
+  // Always use the real current month for this card (independent of the Overview tab's monthOffset)
+  const today = new Date();
+  const realCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const incomes = getIncomes(realCurrentMonth);
   const totalIncome = incomes.reduce((s,e)=>s+e.amount, 0);
   const fixed = getFixedCharges().reduce((s,c)=>s+c.amount, 0);
   const disposable = totalIncome - fixed;
-  return { disposable, weekly: disposable / 4.345, totalIncome, fixed };
+
+  // Money already spent this month (variable expenses only)
+  const monthExpensesSoFar = getMonthExpenses(realCurrentMonth).reduce((s,e)=>s+e.amount, 0);
+  const remainingBudget = disposable - monthExpensesSoFar;
+
+  // Days left in the month, including today
+  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+  const daysLeftInMonth = lastDayOfMonth - today.getDate() + 1;
+  const weeksLeftInMonth = Math.max(daysLeftInMonth / 7, 1/7);
+
+  const weekly = remainingBudget > 0 ? remainingBudget / weeksLeftInMonth : 0;
+
+  return { disposable, weekly, totalIncome, fixed, daysLeftInMonth };
 }
 
 function renderAllowanceCard(){
   const el = document.getElementById('allowance-card');
   const weeklySpent = entries.reduce((s,e)=>s+e.amount, 0);
-  const { weekly, totalIncome, fixed } = getWeeklyAllowance();
+  const { weekly, totalIncome, daysLeftInMonth } = getWeeklyAllowance();
 
   if(totalIncome === 0){
     el.innerHTML = `
@@ -375,7 +397,7 @@ function renderAllowanceCard(){
   }
 
   const remaining = weekly - weeklySpent;
-  const ratio = weeklySpent / weekly;
+  const ratio = weekly > 0 ? weeklySpent / weekly : 1;
   let bg, color, emoji;
   if(ratio < 0.7){ bg = 'var(--green)'; color = 'white'; emoji = '😎'; }
   else if(ratio < 1){ bg = 'var(--amber)'; color = 'white'; emoji = '⚠️'; }
@@ -387,7 +409,7 @@ function renderAllowanceCard(){
       <div class="left-block">
         <p class="label">Budget semaine disponible</p>
         <p class="amount-big">${sign}${Math.abs(remaining).toFixed(0)}€</p>
-        <p class="sub">Budget: ${weekly.toFixed(0)}€ · Dépensé: ${weeklySpent.toFixed(0)}€</p>
+        <p class="sub">Budget: ${weekly.toFixed(0)}€ · Dépensé: ${weeklySpent.toFixed(0)}€ · ${daysLeftInMonth}j restants ce mois</p>
       </div>
       <div class="emoji-block">${emoji}</div>
     </div>`;
@@ -732,6 +754,7 @@ function renderOverview(){
         updated.splice(idx,1);
         saveIncomes(md, updated);
         renderOverview();
+        renderAllowanceCard();
       });
     });
   }
@@ -816,6 +839,7 @@ function switchTab(tab){
   document.getElementById('tab-overview').classList.toggle('active', tab==='overview');
   document.getElementById('settings-btn').style.display = tab==='track' ? '' : 'none';
   if(tab==='overview') renderOverview();
+  if(tab==='track') renderAllowanceCard();
 }
 document.getElementById('tab-track').addEventListener('click', ()=>switchTab('track'));
 document.getElementById('tab-overview').addEventListener('click', ()=>switchTab('overview'));
@@ -884,6 +908,7 @@ document.getElementById('add-income-btn').addEventListener('click', ()=>{
   document.getElementById('income-amount').value = '';
   document.getElementById('income-note').value = '';
   renderOverview();
+  renderAllowanceCard();
 });
 
 document.getElementById('save-goal-btn').addEventListener('click', ()=>{
@@ -900,6 +925,51 @@ renderTrack();
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
+
+/* ============ PULL TO REFRESH ============ */
+(function(){
+  let startY = 0;
+  let pulling = false;
+  const indicator = document.getElementById('pull-indicator');
+  const THRESHOLD = 70;
+
+  document.addEventListener('touchstart', (e)=>{
+    if(window.scrollY === 0){
+      startY = e.touches[0].clientY;
+      pulling = true;
+    } else {
+      pulling = false;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e)=>{
+    if(!pulling) return;
+    const diff = e.touches[0].clientY - startY;
+    if(diff > 0){
+      const h = Math.min(diff * 0.5, 90);
+      indicator.style.height = h + 'px';
+      indicator.textContent = h > THRESHOLD ? '↑ Relâche pour rafraîchir' : '↓ Tire pour rafraîchir';
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', ()=>{
+    if(!pulling) return;
+    const h = parseInt(indicator.style.height) || 0;
+    if(h > THRESHOLD){
+      indicator.textContent = '⟳ Rafraîchissement...';
+      indicator.style.height = '50px';
+      setTimeout(()=>{
+        loadEntries();
+        renderTrack();
+        indicator.style.height = '0px';
+      }, 400);
+    } else {
+      indicator.style.height = '0px';
+    }
+    pulling = false;
+  });
+})();
+
 </script>
 </body>
 </html>
