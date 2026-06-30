@@ -369,14 +369,17 @@ function getWeeklyAllowance(){
 
   // Money already spent this month (variable expenses only)
   const monthExpensesSoFar = getMonthExpenses(realCurrentMonth).reduce((s,e)=>s+e.amount, 0);
-  const remainingBudget = disposable - monthExpensesSoFar;
+  const remainingBudget = Math.max(disposable - monthExpensesSoFar, 0);
 
-  // Days left in the month, including today
+  // Days left in the month, including today (informational)
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
   const daysLeftInMonth = lastDayOfMonth - today.getDate() + 1;
-  const weeksLeftInMonth = Math.max(daysLeftInMonth / 7, 1/7);
 
-  const weekly = remainingBudget > 0 ? remainingBudget / weeksLeftInMonth : 0;
+  // Spread what's left over the number of full/partial weeks remaining,
+  // counted in calendar weeks (Mon-Sun) rather than a raw day fraction,
+  // so the last day(s) of the month don't create a huge spike.
+  const weeksLeftInMonth = Math.max(Math.ceil(daysLeftInMonth / 7), 1);
+  const weekly = remainingBudget / weeksLeftInMonth;
 
   return { disposable, weekly, totalIncome, fixed, daysLeftInMonth };
 }
