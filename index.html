@@ -407,13 +407,16 @@ function renderAllowanceCard(){
   else { bg = 'var(--red)'; color = 'white'; emoji = '🚨'; }
 
   const sign = remaining >= 0 ? '' : '-';
-  const mainLabel = remaining >= 0 ? "à dispatcher cette semaine" : "de dépassement";
+  const isLastStretch = daysLeftInMonth <= 7;
+  const mainLabel = remaining >= 0
+    ? (isLastStretch ? `à dispatcher d'ici la fin du mois (${daysLeftInMonth}j)` : "à dispatcher cette semaine")
+    : "de dépassement";
   el.innerHTML = `
     <div class="allowance-card" style="background:${bg};color:${color}">
       <div class="left-block">
         <p class="label">${remaining >= 0 ? 'Reste' : 'Tu as dépassé de'}</p>
         <p class="amount-big">${sign}${Math.abs(remaining).toFixed(0)}€</p>
-        <p class="sub">${mainLabel} · Budget: ${weekly.toFixed(0)}€ · Dépensé: ${weeklySpent.toFixed(0)}€ · ${daysLeftInMonth}j restants ce mois</p>
+        <p class="sub">${mainLabel} · Budget: ${weekly.toFixed(0)}€ · Dépensé: ${weeklySpent.toFixed(0)}€</p>
       </div>
       <div class="emoji-block">${emoji}</div>
     </div>`;
@@ -657,9 +660,33 @@ function renderSettings(){
       </div>
       <button class="primary" id="add-fixed-btn">Ajouter la charge</button>
     </div>
+    <p style="font-size:14px;font-weight:600;margin:10px 0 6px;color:var(--red)">Zone danger</p>
+    <div class="add-cat" style="border-color:var(--red)">
+      <p style="font-size:13px;color:var(--text-secondary);margin:0">Efface toutes tes dépenses, revenus et ton objectif d'épargne (semaines passées comprises). Les catégories et charges fixes ne sont pas touchées.</p>
+      <button id="reset-all-btn" style="border-color:var(--red);color:var(--red)">🗑️ Réinitialiser toutes les données</button>
+    </div>
   `;
   panel.innerHTML = html;
   renderAllocTracker();
+
+  document.getElementById('reset-all-btn').addEventListener('click', ()=>{
+    if(!confirm('Es-tu sûr ? Toutes tes dépenses, revenus et ton objectif d\'épargne seront définitivement supprimés.')) return;
+    const keysToRemove = [];
+    for(let i=0;i<localStorage.length;i++){
+      const key = localStorage.key(i);
+      if(key.startsWith('expenses-') || key.startsWith('income-') || key === 'savingsGoal'){
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    editingIdx = null;
+    weekOffset = 0;
+    monthOffset = 0;
+    loadEntries();
+    renderTrack();
+    renderSettings();
+    alert('Toutes les données ont été réinitialisées.');
+  });
 
   panel.querySelectorAll('input[data-idx][data-field="weekly"]').forEach(input=>{
     input.addEventListener('input', ()=>{
