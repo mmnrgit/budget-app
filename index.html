@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Coin">
+<meta name="theme-color" content="#423B38">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Coin</title>
+<style>
+  :root {
+    --bg:        #423B38;
+    --surface:   #332D2A;
+    --surface2:  #2A2522;
+    --text:      #F5F0EC;
+    --muted:     #9A8F8A;
+    --accent:    #E8924A;
+    --danger:    #C0503A;
+    --radius:    16px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    overflow: hidden;
+  }
+
+  /* ── PAGES ── */
+  .page { position: absolute; inset: 0; display: flex; flex-direction: column; transition: transform .35s cubic-bezier(.4,0,.2,1); overflow: hidden; }
+  .page.off-right { transform: translateX(100%); }
+
+  /* ── HEADER ── */
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px 0; min-height: 60px; }
+  .header h1 { font-size: 15px; font-weight: 600; letter-spacing: .5px; color: var(--muted); }
+  .icon-btn { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 6px; line-height: 1; }
+  .icon-btn:active { color: var(--text); }
+
+  /* ── HERO ── */
+  .hero { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px 24px; }
+  .hero-amount-row { display: flex; align-items: flex-start; gap: 10px; }
+  .hero-amount { font-size: 80px; font-weight: 800; line-height: 1; letter-spacing: -4px; color: var(--text); }
+  .hero-coin {
+    margin-top: 14px;
+    width: 36px; height: 36px; flex-shrink: 0;
+  }
+  .hero-label { font-size: 13px; color: var(--muted); margin-top: 6px; letter-spacing: .3px; }
+  .hero-week { margin-top: 20px; text-align: center; }
+  .hero-week-amount { font-size: 28px; font-weight: 700; color: var(--accent); letter-spacing: -1px; }
+  .hero-week-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ── ADD BTN ── */
+  .add-wrap { padding: 0 24px; margin: 8px 0 20px; }
+  .add-btn {
+    width: 100%; padding: 16px; border: none; border-radius: 50px;
+    background: var(--accent); color: #fff;
+    font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600;
+    cursor: pointer; letter-spacing: .2px;
+    transition: opacity .15s;
+  }
+  .add-btn:active { opacity: .8; }
+
+  /* ── EXPENSES LIST ── */
+  .expenses-wrap { flex: 1; overflow-y: auto; padding: 0 24px 30px; }
+  .expenses-wrap::-webkit-scrollbar { display: none; }
+  .month-label { font-size: 12px; color: var(--muted); letter-spacing: .5px; margin-bottom: 12px; text-transform: uppercase; }
+  .expense-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    cursor: pointer;
+  }
+  .expense-item:last-child { border-bottom: none; }
+  .expense-left { display: flex; flex-direction: column; gap: 3px; }
+  .expense-note { font-size: 15px; font-weight: 500; color: var(--text); }
+  .expense-date { font-size: 12px; color: var(--muted); }
+  .expense-amount { font-size: 16px; font-weight: 700; color: var(--text); }
+  .empty-state { text-align: center; color: var(--muted); font-size: 14px; padding: 40px 0; line-height: 1.8; }
+
+  /* ── DRAWER ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    opacity: 0; pointer-events: none; transition: opacity .3s;
+    z-index: 10;
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+  .drawer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    padding: 20px 24px calc(env(safe-area-inset-bottom) + 24px);
+    transform: translateY(100%);
+    transition: transform .35s cubic-bezier(.4,0,.2,1);
+    z-index: 11;
+  }
+  .drawer.open { transform: translateY(0); }
+  .drawer-handle { width: 40px; height: 4px; background: rgba(255,255,255,.2); border-radius: 2px; margin: 0 auto 24px; }
+  .drawer-title { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+  .field-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: .3px; }
+  .field-row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .field-row input { flex: 1; }
+  input[type=text], input[type=number] {
+    background: var(--surface2); border: none; border-radius: 12px;
+    padding: 14px 16px; color: var(--text);
+    font-family: 'Inter', sans-serif; font-size: 16px;
+    width: 100%; outline: none;
+  }
+  input[type=number] { width: 110px; }
+  input::placeholder { color: var(--muted); }
+  input:focus { box-shadow: 0 0 0 2px var(--accent); }
+  .drawer-btn {
+    width: 100%; padding: 16px; border: none; border-radius: 50px;
+    background: var(--accent); color: #fff;
+    font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600;
+    cursor: pointer; margin-top: 4px;
+    transition: opacity .15s;
+  }
+  .drawer-btn:active { opacity: .8; }
+  .drawer-btn.danger { background: var(--danger); }
+  .drawer-actions { display: flex; gap: 10px; margin-top: 4px; }
+  .drawer-actions button { flex: 1; }
+
+  /* ── SETTINGS PAGE ── */
+  .settings-body { flex: 1; overflow-y: auto; padding: 16px 24px calc(env(safe-area-inset-bottom) + 30px); }
+  .settings-body::-webkit-scrollbar { display: none; }
+  .settings-section { margin-bottom: 28px; }
+  .settings-section-title { font-size: 12px; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 12px; }
+  .settings-field { margin-bottom: 12px; }
+  .settings-field input { width: 100%; }
+  .fixed-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border-radius: var(--radius);
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .fixed-item .fi-left { display: flex; flex-direction: column; gap: 3px; }
+  .fixed-item .fi-label { font-size: 15px; font-weight: 500; }
+  .fixed-item .fi-amount { font-size: 13px; color: var(--muted); }
+  .fixed-item .fi-delete { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px; }
+  .fixed-item .fi-delete:active { color: var(--danger); }
+  .add-fixed-row { display: flex; gap: 10px; }
+  .add-fixed-row input[type=text] { flex: 1; }
+  .add-fixed-row input[type=number] { width: 100px; }
+  .save-btn {
+    width: 100%; padding: 16px; border: none; border-radius: 50px;
+    background: var(--accent); color: #fff;
+    font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600;
+    cursor: pointer; margin-top: 8px;
+    transition: opacity .15s;
+  }
+  .save-btn:active { opacity: .8; }
+</style>
+</head>
+<body>
+
+<!-- ══ PAGE 1 : SUIVI ══ -->
+<div class="page" id="page-main">
+  <div class="header">
+    <h1>Coin</h1>
+    <button class="icon-btn" id="open-settings" aria-label="Réglages">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="hero">
+    <div class="hero-amount-row">
+      <div class="hero-amount" id="hero-month">—</div>
+      <!-- Coin SVG -->
+      <svg class="hero-coin" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="18" cy="18" r="17" fill="#E8924A" opacity=".15"/>
+        <circle cx="18" cy="18" r="17" stroke="#E8924A" stroke-width="1.5"/>
+        <circle cx="18" cy="18" r="11" stroke="#E8924A" stroke-width="1.2" opacity=".6"/>
+        <text x="18" y="23" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#E8924A">€</text>
+      </svg>
+    </div>
+    <div class="hero-label">disponible ce mois</div>
+
+    <div class="hero-week">
+      <div class="hero-week-amount" id="hero-week">—</div>
+      <div class="hero-week-label">cette semaine</div>
+    </div>
+  </div>
+
+  <div class="add-wrap">
+    <button class="add-btn" id="open-add">+ Nouvelle dépense</button>
+  </div>
+
+  <div class="expenses-wrap">
+    <div class="month-label" id="month-label"></div>
+    <div id="expenses-list"></div>
+  </div>
+</div>
+
+<!-- ══ PAGE 2 : RÉGLAGES ══ -->
+<div class="page off-right" id="page-settings">
+  <div class="header">
+    <button class="icon-btn" id="close-settings" aria-label="Retour">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M13 16l-5-6 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <h1>Réglages</h1>
+    <div style="width:32px"></div>
+  </div>
+
+  <div class="settings-body">
+    <div class="settings-section">
+      <div class="settings-section-title">Salaire mensuel net</div>
+      <div class="settings-field">
+        <input type="number" id="salary-input" inputmode="decimal" placeholder="ex : 1400" />
+      </div>
+      <button class="save-btn" id="save-salary">Enregistrer</button>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Charges fixes</div>
+      <div id="fixed-list"></div>
+      <div class="add-fixed-row">
+        <input type="text" id="new-fixed-label" placeholder="Loyer, prêt…" />
+        <input type="number" id="new-fixed-amount" inputmode="decimal" placeholder="360" />
+      </div>
+      <button class="save-btn" id="add-fixed-btn" style="margin-top:10px">Ajouter</button>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Zone danger</div>
+      <button class="save-btn" id="reset-all-btn" style="background:var(--danger)">Réinitialiser toutes les données</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ OVERLAY + DRAWER : NOUVELLE DÉPENSE ══ -->
+<div class="overlay" id="overlay"></div>
+<div class="drawer" id="drawer-add">
+  <div class="drawer-handle"></div>
+  <div class="drawer-title">Nouvelle dépense</div>
+  <div class="field-row">
+    <div style="flex:1">
+      <div class="field-label">Montant</div>
+      <input type="number" id="exp-amount" inputmode="decimal" placeholder="0" style="width:100%" />
+    </div>
+    <div style="flex:2">
+      <div class="field-label">Note</div>
+      <input type="text" id="exp-note" placeholder="Courses Carrefour…" style="width:100%" />
+    </div>
+  </div>
+  <button class="drawer-btn" id="save-expense">Ajouter</button>
+</div>
+
+<!-- ══ DRAWER : MODIFIER / SUPPRIMER ══ -->
+<div class="drawer" id="drawer-edit">
+  <div class="drawer-handle"></div>
+  <div class="drawer-title">Modifier</div>
+  <div class="field-row">
+    <div style="flex:1">
+      <div class="field-label">Montant</div>
+      <input type="number" id="edit-amount" inputmode="decimal" placeholder="0" style="width:100%" />
+    </div>
+    <div style="flex:2">
+      <div class="field-label">Note</div>
+      <input type="text" id="edit-note" placeholder="…" style="width:100%" />
+    </div>
+  </div>
+  <div class="drawer-actions">
+    <button class="drawer-btn danger" id="delete-expense">Supprimer</button>
+    <button class="drawer-btn" id="update-expense">Enregistrer</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   STORAGE
+═══════════════════════════════════════════════ */
+function getData(key, fallback){ try{ const v=localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch(e){ return fallback; } }
+function setData(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+function getSalary(){ return getData('salary', 0); }
+function setSalary(v){ setData('salary', v); }
+function getFixed(){ return getData('fixed', []); }
+function setFixed(v){ setData('fixed', v); }
+
+function monthKey(d){ return 'exp-' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+function getExpenses(d){ return getData(monthKey(d), []); }
+function setExpenses(d, list){ setData(monthKey(d), list); }
+
+/* ═══════════════════════════════════════════════
+   CALCULATIONS
+═══════════════════════════════════════════════ */
+function calcMonth(){
+  const now = new Date();
+  const salary = getSalary();
+  const fixed = getFixed().reduce((s,f)=>s+f.amount, 0);
+  const expenses = getExpenses(now).reduce((s,e)=>s+e.amount, 0);
+  return Math.max(salary - fixed - expenses, 0);
+}
+
+function calcWeek(){
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const daysLeft = lastDay - now.getDate() + 1;
+  const weeksLeft = Math.max(Math.ceil(daysLeft / 7), 1);
+  return Math.round(calcMonth() / weeksLeft);
+}
+
+function fmt(n){ return n.toLocaleString('fr-FR') + '€'; }
+
+/* ═══════════════════════════════════════════════
+   RENDER MAIN
+═══════════════════════════════════════════════ */
+function renderMain(){
+  const month = calcMonth();
+  const week = calcWeek();
+  document.getElementById('hero-month').textContent = fmt(month);
+  document.getElementById('hero-week').textContent = fmt(week);
+
+  const now = new Date();
+  const label = now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  document.getElementById('month-label').textContent = label.charAt(0).toUpperCase() + label.slice(1);
+
+  const expenses = getExpenses(now).slice().reverse();
+  const list = document.getElementById('expenses-list');
+  if(expenses.length === 0){
+    list.innerHTML = '<div class="empty-state">Aucune dépense ce mois-ci.<br>Ajoute ta première dépense.</div>';
+    return;
+  }
+  list.innerHTML = expenses.map((e,i)=>{
+    const realIdx = expenses.length - 1 - i;
+    const d = new Date(e.ts);
+    const dateStr = d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+    return `<div class="expense-item" data-idx="${realIdx}">
+      <div class="expense-left">
+        <div class="expense-note">${e.note || 'Dépense'}</div>
+        <div class="expense-date">${dateStr}</div>
+      </div>
+      <div class="expense-amount">−${fmt(e.amount)}</div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.expense-item').forEach(el=>{
+    el.addEventListener('click', ()=> openEdit(parseInt(el.dataset.idx)));
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER SETTINGS
+═══════════════════════════════════════════════ */
+function renderSettings(){
+  document.getElementById('salary-input').value = getSalary() || '';
+  const fixed = getFixed();
+  const fl = document.getElementById('fixed-list');
+  fl.innerHTML = fixed.map((f,i)=>`
+    <div class="fixed-item">
+      <div class="fi-left">
+        <div class="fi-label">${f.label}</div>
+        <div class="fi-amount">${fmt(f.amount)} / mois</div>
+      </div>
+      <button class="fi-delete" data-idx="${i}">✕</button>
+    </div>`).join('');
+  fl.querySelectorAll('.fi-delete').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const list = getFixed();
+      list.splice(parseInt(btn.dataset.idx),1);
+      setFixed(list);
+      renderSettings();
+      renderMain();
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   NAVIGATION PAGES
+═══════════════════════════════════════════════ */
+document.getElementById('open-settings').addEventListener('click', ()=>{
+  renderSettings();
+  document.getElementById('page-settings').classList.remove('off-right');
+});
+document.getElementById('close-settings').addEventListener('click', ()=>{
+  document.getElementById('page-settings').classList.add('off-right');
+  renderMain();
+});
+
+/* ═══════════════════════════════════════════════
+   DRAWER : NOUVELLE DÉPENSE
+═══════════════════════════════════════════════ */
+const overlay   = document.getElementById('overlay');
+const drawerAdd = document.getElementById('drawer-add');
+const drawerEdit= document.getElementById('drawer-edit');
+
+function openDrawer(drawer){
+  overlay.classList.add('open');
+  drawer.classList.add('open');
+}
+function closeDrawers(){
+  overlay.classList.remove('open');
+  drawerAdd.classList.remove('open');
+  drawerEdit.classList.remove('open');
+}
+overlay.addEventListener('click', closeDrawers);
+
+document.getElementById('open-add').addEventListener('click', ()=>{
+  document.getElementById('exp-amount').value = '';
+  document.getElementById('exp-note').value = '';
+  openDrawer(drawerAdd);
+  setTimeout(()=> document.getElementById('exp-amount').focus(), 350);
+});
+
+document.getElementById('save-expense').addEventListener('click', ()=>{
+  const amount = parseFloat(document.getElementById('exp-amount').value);
+  const note   = document.getElementById('exp-note').value.trim();
+  if(!amount || amount <= 0) return;
+  const now = new Date();
+  const list = getExpenses(now);
+  list.push({ amount, note, ts: Date.now() });
+  setExpenses(now, list);
+  closeDrawers();
+  renderMain();
+});
+
+/* ═══════════════════════════════════════════════
+   DRAWER : MODIFIER / SUPPRIMER
+═══════════════════════════════════════════════ */
+let editIdx = null;
+
+function openEdit(idx){
+  const now = new Date();
+  const list = getExpenses(now);
+  const e = list[idx];
+  if(!e) return;
+  editIdx = idx;
+  document.getElementById('edit-amount').value = e.amount;
+  document.getElementById('edit-note').value   = e.note || '';
+  openDrawer(drawerEdit);
+}
+
+document.getElementById('update-expense').addEventListener('click', ()=>{
+  if(editIdx === null) return;
+  const amount = parseFloat(document.getElementById('edit-amount').value);
+  const note   = document.getElementById('edit-note').value.trim();
+  if(!amount || amount <= 0) return;
+  const now = new Date();
+  const list = getExpenses(now);
+  list[editIdx] = { ...list[editIdx], amount, note };
+  setExpenses(now, list);
+  editIdx = null;
+  closeDrawers();
+  renderMain();
+});
+
+document.getElementById('delete-expense').addEventListener('click', ()=>{
+  if(editIdx === null) return;
+  const now = new Date();
+  const list = getExpenses(now);
+  list.splice(editIdx, 1);
+  setExpenses(now, list);
+  editIdx = null;
+  closeDrawers();
+  renderMain();
+});
+
+/* ═══════════════════════════════════════════════
+   SETTINGS ACTIONS
+═══════════════════════════════════════════════ */
+document.getElementById('save-salary').addEventListener('click', ()=>{
+  const v = parseFloat(document.getElementById('salary-input').value) || 0;
+  setSalary(v);
+  renderMain();
+  const btn = document.getElementById('save-salary');
+  btn.textContent = 'Enregistré ✓';
+  setTimeout(()=> btn.textContent = 'Enregistrer', 1500);
+});
+
+document.getElementById('add-fixed-btn').addEventListener('click', ()=>{
+  const label  = document.getElementById('new-fixed-label').value.trim();
+  const amount = parseFloat(document.getElementById('new-fixed-amount').value) || 0;
+  if(!label || !amount) return;
+  const list = getFixed();
+  list.push({ label, amount });
+  setFixed(list);
+  document.getElementById('new-fixed-label').value  = '';
+  document.getElementById('new-fixed-amount').value = '';
+  renderSettings();
+  renderMain();
+});
+
+document.getElementById('reset-all-btn').addEventListener('click', ()=>{
+  if(!confirm('Réinitialiser toutes les dépenses ? Salaire et charges fixes sont conservés.')) return;
+  const keys = [];
+  for(let i=0;i<localStorage.length;i++){
+    if(localStorage.key(i).startsWith('exp-')) keys.push(localStorage.key(i));
+  }
+  keys.forEach(k=> localStorage.removeItem(k));
+  renderMain();
+});
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+renderMain();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
