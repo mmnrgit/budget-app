@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Coin">
+<meta name="theme-color" content="#423B38">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Limelight&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<title>Coin</title>
+<style>
+  :root {
+    --bg:      #423B38;
+    --surface: #332D2A;
+    --deep:    #2A2522;
+    --text:    #F5F0EC;
+    --muted:   #9A8F8A;
+    --accent:  #E8924A;
+    --gold:    #C8943A;
+    --danger:  #C0503A;
+    --radius:  16px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; background: var(--bg); }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── PAGE MAIN ── */
+  #page-main {
+    min-height: 100dvh;
+    display: flex; flex-direction: column;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+  }
+
+  /* ── PAGE SETTINGS ── */
+  #page-settings {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 20;
+    display: flex; flex-direction: column;
+    padding-top: env(safe-area-inset-top);
+    transform: translateX(100%);
+    transition: transform .38s cubic-bezier(.4,0,.2,1);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #page-settings.open { transform: translateX(0); }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 24px;
+  }
+  .header h1 {
+    font-family: 'Limelight', cursive;
+    font-size: 20px; font-weight: 400;
+    color: var(--accent); letter-spacing: 2px;
+  }
+  .icon-btn {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; padding: 8px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: color .15s, background .15s;
+  }
+  .icon-btn:active { color: var(--text); background: rgba(255,255,255,.08); }
+
+  /* ── DECO LINE ── */
+  .deco-line {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 24px; margin-bottom: 4px;
+  }
+  .deco-line .line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .4; }
+  .deco-line .diamond { width: 6px; height: 6px; background: var(--accent); transform: rotate(45deg); flex-shrink: 0; opacity: .7; }
+
+  /* ── HERO ── */
+  .hero {
+    flex: 0 0 auto;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 20px 24px 48px;
+    text-align: center;
+  }
+  .hero-amount-row { display: flex; align-items: flex-start; gap: 12px; }
+  .hero-amount {
+    font-family: 'Limelight', cursive;
+    font-size: 84px; font-weight: 400; line-height: 1;
+    letter-spacing: -2px; color: var(--text);
+  }
+  .hero-coin { margin-top: 14px; width: 40px; height: 40px; flex-shrink: 0; }
+  .hero-label {
+    font-size: 11px; font-weight: 500; color: var(--muted);
+    letter-spacing: 2.5px; text-transform: uppercase; margin-top: 10px;
+  }
+
+  .hero-spacer { height: 24px; }
+
+  .hero-week-amount {
+    font-family: 'Limelight', cursive;
+    font-size: 36px; font-weight: 400; color: var(--accent);
+    letter-spacing: 0px;
+  }
+  .hero-week-label {
+    font-size: 10px; font-weight: 500; color: var(--muted);
+    letter-spacing: 2.5px; text-transform: uppercase; margin-top: 6px;
+  }
+
+  /* ── ADD BTN ── */
+  .add-wrap { padding: 24px 24px 24px; }
+  .add-btn {
+    width: 100%; padding: 17px; border: 1px solid rgba(232,146,74,.4);
+    border-radius: 4px;
+    background: var(--accent); color: #fff;
+    font-family: 'Limelight', cursive; font-size: 15px; font-weight: 400;
+    letter-spacing: 2px;
+    cursor: pointer;
+    position: relative; overflow: hidden;
+    transition: transform .1s, opacity .1s;
+  }
+  .add-btn::before, .add-btn::after {
+    content: '◆';
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-size: 8px; opacity: .6;
+  }
+  .add-btn::before { left: 16px; }
+  .add-btn::after  { right: 16px; }
+  .add-btn:active { transform: scale(.97); opacity: .9; }
+
+  /* ── EXPENSES LIST ── */
+  .expenses-wrap { flex: 1; padding: 0 24px 8px; }
+  .month-label {
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .month-label::before, .month-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(232,146,74,.25), transparent);
+  }
+  .expense-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid rgba(200,148,58,.12);
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .expense-item:last-child { border-bottom: none; }
+  .expense-item:active { opacity: .5; }
+  .expense-left { display: flex; flex-direction: column; gap: 3px; }
+  .expense-note { font-size: 15px; font-weight: 500; color: var(--text); }
+  .expense-date { font-size: 12px; color: var(--muted); }
+  .expense-amount { font-family: 'Limelight', cursive; font-size: 16px; color: var(--text); letter-spacing: .5px; }
+
+  /* ── OVERLAY + DRAWER ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s; z-index: 30;
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+  .drawer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-radius: 0; /* art deco: sharp top corners with ornament */
+    border-top: 1px solid rgba(232,146,74,.3);
+    padding: 20px 24px calc(env(safe-area-inset-bottom) + 28px);
+    transform: translateY(105%);
+    transition: transform .38s cubic-bezier(.4,0,.2,1);
+    z-index: 31;
+  }
+  .drawer.open { transform: translateY(0); }
+  .drawer-handle {
+    width: 44px; height: 3px;
+    background: rgba(232,146,74,.3); border-radius: 0;
+    margin: 0 auto 24px;
+  }
+  .drawer-ornament {
+    text-align: center; color: var(--accent); font-size: 12px;
+    letter-spacing: 6px; opacity: .5; margin-bottom: 20px;
+  }
+  .drawer-title {
+    font-family: 'Limelight', cursive;
+    font-size: 20px; font-weight: 400;
+    letter-spacing: 1px; margin-bottom: 24px; text-align: center;
+    color: var(--text);
+  }
+  .field-group { margin-bottom: 16px; }
+  .field-label {
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .field-row { display: flex; gap: 12px; }
+  .field-row .field-group { flex: 1; margin-bottom: 0; }
+  input[type=text], input[type=number] {
+    background: var(--deep); border: 1px solid rgba(232,146,74,.15);
+    border-radius: 4px;
+    padding: 15px 16px; color: var(--text);
+    font-family: 'Inter', sans-serif; font-size: 17px;
+    width: 100%; outline: none;
+    transition: border-color .2s;
+  }
+  input::placeholder { color: var(--muted); }
+  input:focus { border-color: var(--accent); }
+  .drawer-btn {
+    width: 100%; padding: 16px; border: 1px solid rgba(232,146,74,.4);
+    border-radius: 4px;
+    background: var(--accent); color: #fff;
+    font-family: 'Limelight', cursive; font-size: 15px; font-weight: 400;
+    letter-spacing: 2px;
+    cursor: pointer; margin-top: 8px;
+    transition: transform .1s, opacity .1s;
+  }
+  .drawer-btn:active { transform: scale(.97); opacity: .9; }
+  .drawer-btn.danger { background: var(--danger); border-color: rgba(192,80,58,.4); }
+  .drawer-btn.ghost {
+    background: transparent; color: var(--muted);
+    border-color: rgba(255,255,255,.1);
+    font-family: 'Inter', sans-serif; font-size: 14px; letter-spacing: 0;
+  }
+  .drawer-actions { display: flex; gap: 10px; margin-top: 8px; }
+  .drawer-actions .drawer-btn { flex: 1; margin-top: 0; }
+
+  /* ── SETTINGS ── */
+  .settings-body {
+    flex: 1;
+    padding: 8px 24px calc(env(safe-area-inset-bottom) + 40px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .s-section { margin-bottom: 36px; }
+  .s-title {
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .s-title::after { content: ''; flex: 1; height: 1px; background: rgba(232,146,74,.2); }
+  .s-input { width: 100%; margin-bottom: 10px; }
+  .s-btn {
+    width: 100%; padding: 16px; border: 1px solid rgba(232,146,74,.4);
+    border-radius: 4px;
+    background: var(--accent); color: #fff;
+    font-family: 'Limelight', cursive; font-size: 14px; font-weight: 400;
+    letter-spacing: 2px;
+    cursor: pointer; transition: transform .1s, opacity .1s;
+  }
+  .s-btn:active { transform: scale(.97); opacity: .9; }
+  .s-btn.danger { background: var(--danger); border-color: rgba(192,80,58,.4); }
+  .fixed-item {
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(200,148,58,.12);
+    padding: 14px 0; margin-bottom: 0;
+  }
+  .fi-label { font-size: 15px; font-weight: 500; }
+  .fi-amount { font-size: 12px; color: var(--muted); margin-top: 2px; letter-spacing: .5px; }
+  .fi-delete {
+    background: none; border: none; color: var(--muted);
+    font-size: 16px; cursor: pointer; padding: 6px 8px;
+    transition: color .15s;
+  }
+  .fi-delete:active { color: var(--danger); }
+  .add-fixed-row { display: flex; gap: 10px; margin: 16px 0 10px; }
+  .add-fixed-row input[type=text] { flex: 1.6; }
+  .add-fixed-row input[type=number] { flex: 1; }
+
+  /* ── COUNTER ANIMATION ── */
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hero-amount.animating, .hero-week-amount.animating {
+    animation: countUp .4s cubic-bezier(.2,0,.2,1) forwards;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ PAGE PRINCIPALE ══ -->
+<div id="page-main">
+  <div class="header">
+    <h1>Coin</h1>
+    <button class="icon-btn" id="open-settings" aria-label="Réglages">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <circle cx="11" cy="11" r="2.8" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M11 2v2.2M11 17.8V20M2 11h2.2M17.8 11H20M4.64 4.64l1.56 1.56M15.8 15.8l1.56 1.56M4.64 17.36l1.56-1.56M15.8 6.2l1.56-1.56" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="deco-line">
+    <div class="line"></div>
+    <div class="diamond"></div>
+    <div class="line"></div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-amount-row">
+      <div class="hero-amount" id="hero-month">—</div>
+      <!-- Art Deco medallion coin -->
+      <svg class="hero-coin" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" stroke="#E8924A" stroke-width="1"/>
+        <circle cx="20" cy="20" r="15" stroke="#E8924A" stroke-width=".6" opacity=".5"/>
+        <circle cx="20" cy="20" r="11" stroke="#E8924A" stroke-width=".4" opacity=".3"/>
+        <!-- corner diamonds -->
+        <rect x="19" y="1.5" width="2" height="2" fill="#E8924A" transform="rotate(45 20 2.5)" opacity=".8"/>
+        <rect x="19" y="36.5" width="2" height="2" fill="#E8924A" transform="rotate(45 20 37.5)" opacity=".8"/>
+        <text x="20" y="25" text-anchor="middle" font-family="Limelight,cursive" font-size="14" fill="#E8924A">€</text>
+      </svg>
+    </div>
+    <div class="hero-label">disponible ce mois</div>
+
+    <div class="hero-spacer"></div>
+
+    <div class="hero-week-amount" id="hero-week">—</div>
+    <div class="hero-week-label">cette semaine</div>
+  </div>
+
+  <div class="deco-line" style="margin-bottom:0">
+    <div class="line"></div>
+    <div class="diamond"></div>
+    <div class="line"></div>
+  </div>
+
+  <div class="add-wrap">
+    <button class="add-btn" id="open-add">+ Nouvelle dépense</button>
+  </div>
+
+  <div class="expenses-wrap">
+    <div class="month-label" id="month-label"></div>
+    <div id="expenses-list"></div>
+  </div>
+</div>
+
+<!-- ══ PAGE RÉGLAGES ══ -->
+<div id="page-settings">
+  <div class="header">
+    <button class="icon-btn" id="close-settings" aria-label="Retour">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M14 18l-6-7 6-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <h1>Réglages</h1>
+    <div style="width:38px"></div>
+  </div>
+
+  <div class="settings-body">
+    <div class="s-section">
+      <div class="s-title">Salaire mensuel net</div>
+      <input type="number" id="salary-input" inputmode="decimal" placeholder="1 400" class="s-input" />
+      <button class="s-btn" id="save-salary">Enregistrer</button>
+    </div>
+
+    <div class="s-section">
+      <div class="s-title">Charges fixes</div>
+      <div id="fixed-list"></div>
+      <div class="add-fixed-row">
+        <input type="text" id="new-fixed-label" placeholder="Loyer, prêt…" />
+        <input type="number" id="new-fixed-amount" inputmode="decimal" placeholder="360" />
+      </div>
+      <button class="s-btn" id="add-fixed-btn">Ajouter</button>
+    </div>
+
+    <div class="s-section">
+      <div class="s-title">Zone danger</div>
+      <button class="s-btn danger" id="reset-all-btn">Réinitialiser les dépenses</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ OVERLAY ══ -->
+<div class="overlay" id="overlay"></div>
+
+<!-- ══ DRAWER : NOUVELLE DÉPENSE ══ -->
+<div class="drawer" id="drawer-add">
+  <div class="drawer-handle"></div>
+  <div class="drawer-ornament">◆ ◆ ◆</div>
+  <div class="drawer-title">Nouvelle dépense</div>
+  <div class="field-row">
+    <div class="field-group">
+      <div class="field-label">Montant</div>
+      <input type="number" id="exp-amount" inputmode="decimal" placeholder="0" />
+    </div>
+    <div class="field-group" style="flex:2">
+      <div class="field-label">Note</div>
+      <input type="text" id="exp-note" placeholder="Courses, bar…" />
+    </div>
+  </div>
+  <button class="drawer-btn" id="save-expense">Ajouter</button>
+</div>
+
+<!-- ══ DRAWER : MODIFIER ══ -->
+<div class="drawer" id="drawer-edit">
+  <div class="drawer-handle"></div>
+  <div class="drawer-ornament">◆ ◆ ◆</div>
+  <div class="drawer-title">Modifier</div>
+  <div class="field-row">
+    <div class="field-group">
+      <div class="field-label">Montant</div>
+      <input type="number" id="edit-amount" inputmode="decimal" placeholder="0" />
+    </div>
+    <div class="field-group" style="flex:2">
+      <div class="field-label">Note</div>
+      <input type="text" id="edit-note" placeholder="…" />
+    </div>
+  </div>
+  <div class="drawer-actions">
+    <button class="drawer-btn danger" id="delete-expense">Supprimer</button>
+    <button class="drawer-btn" id="update-expense">Enregistrer</button>
+  </div>
+</div>
+
+<script>
+/* ══ STORAGE ══ */
+function load(key, fb){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):fb; }catch(e){ return fb; } }
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+const getSalary  = ()=> load('salary', 0);
+const setSalary  = v => save('salary', v);
+const getFixed   = ()=> load('fixed', []);
+const setFixed   = v => save('fixed', v);
+
+function monthKey(){
+  const d = new Date();
+  return 'exp-' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+const getExpenses = ()=> load(monthKey(), []);
+const setExpenses = v => save(monthKey(), v);
+
+/* ══ CALC ══ */
+function calcDisposable(){
+  const salary = getSalary();
+  const fixed  = getFixed().reduce((s,f)=>s+f.amount, 0);
+  const spent  = getExpenses().reduce((s,e)=>s+e.amount, 0);
+  return salary - fixed - spent;
+}
+function calcWeek(){
+  return Math.round(Math.max(calcDisposable(), 0) / 4.33);
+}
+function fmt(n){
+  const abs = Math.abs(Math.round(n));
+  return (n < 0 ? '−' : '') + abs.toLocaleString('fr-FR') + '€';
+}
+
+/* ══ ANIMATED COUNTER ══ */
+function animateValue(el, newVal){
+  const current = parseInt(el.dataset.val || '0');
+  const target  = Math.round(newVal);
+  if(current === target){ el.textContent = fmt(newVal); return; }
+  const duration = 500;
+  const start = performance.now();
+  function step(now){
+    const p = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    const v = Math.round(current + (target - current) * ease);
+    el.textContent = fmt(v);
+    if(p < 1) requestAnimationFrame(step);
+    else { el.textContent = fmt(target); el.dataset.val = target; }
+  }
+  requestAnimationFrame(step);
+}
+
+/* ══ RENDER MAIN ══ */
+function renderMain(animate=false){
+  const month = calcDisposable();
+  const week  = calcWeek();
+  const mEl   = document.getElementById('hero-month');
+  const wEl   = document.getElementById('hero-week');
+
+  if(animate){
+    animateValue(mEl, month);
+    animateValue(wEl, week);
+    mEl.classList.add('animating');
+    wEl.classList.add('animating');
+    setTimeout(()=>{ mEl.classList.remove('animating'); wEl.classList.remove('animating'); }, 500);
+  } else {
+    mEl.textContent   = fmt(month);
+    mEl.dataset.val   = Math.round(month);
+    wEl.textContent   = fmt(week);
+    wEl.dataset.val   = Math.round(week);
+  }
+
+  const now   = new Date();
+  const label = now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  document.getElementById('month-label').textContent =
+    label.charAt(0).toUpperCase() + label.slice(1);
+
+  const expenses = getExpenses().slice().reverse();
+  const list = document.getElementById('expenses-list');
+  if(!expenses.length){ list.innerHTML = ''; return; }
+
+  list.innerHTML = expenses.map((e, i)=>{
+    const realIdx = expenses.length - 1 - i;
+    const d = new Date(e.ts);
+    const dateStr = d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+    return `<div class="expense-item" data-idx="${realIdx}">
+      <div class="expense-left">
+        <div class="expense-note">${e.note || 'Dépense'}</div>
+        <div class="expense-date">${dateStr}</div>
+      </div>
+      <div class="expense-amount">−${fmt(e.amount)}</div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.expense-item').forEach(el=>{
+    el.addEventListener('click', ()=> openEdit(parseInt(el.dataset.idx)));
+  });
+}
+
+/* ══ RENDER SETTINGS ══ */
+function renderSettings(){
+  document.getElementById('salary-input').value = getSalary() || '';
+  const fixed = getFixed();
+  const fl = document.getElementById('fixed-list');
+  if(!fixed.length){ fl.innerHTML = ''; return; }
+  fl.innerHTML = fixed.map((f,i)=>`
+    <div class="fixed-item">
+      <div>
+        <div class="fi-label">${f.label}</div>
+        <div class="fi-amount">${fmt(f.amount)} / mois</div>
+      </div>
+      <button class="fi-delete" data-idx="${i}">✕</button>
+    </div>`).join('');
+  fl.querySelectorAll('.fi-delete').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const list = getFixed(); list.splice(parseInt(btn.dataset.idx),1); setFixed(list);
+      renderSettings(); renderMain(true);
+    });
+  });
+}
+
+/* ══ NAVIGATION ══ */
+document.getElementById('open-settings').addEventListener('click', ()=>{
+  renderSettings();
+  document.getElementById('page-settings').classList.add('open');
+});
+document.getElementById('close-settings').addEventListener('click', ()=>{
+  document.getElementById('page-settings').classList.remove('open');
+  renderMain(false);
+});
+
+/* ══ DRAWERS ══ */
+const overlay    = document.getElementById('overlay');
+const drawerAdd  = document.getElementById('drawer-add');
+const drawerEdit = document.getElementById('drawer-edit');
+
+function openDrawer(d){ overlay.classList.add('open'); d.classList.add('open'); }
+function closeDrawers(){ overlay.classList.remove('open'); drawerAdd.classList.remove('open'); drawerEdit.classList.remove('open'); }
+overlay.addEventListener('click', closeDrawers);
+
+document.getElementById('open-add').addEventListener('click', ()=>{
+  document.getElementById('exp-amount').value = '';
+  document.getElementById('exp-note').value   = '';
+  openDrawer(drawerAdd);
+  setTimeout(()=> document.getElementById('exp-amount').focus(), 380);
+});
+
+document.getElementById('save-expense').addEventListener('click', ()=>{
+  const amount = parseFloat(document.getElementById('exp-amount').value);
+  const note   = document.getElementById('exp-note').value.trim();
+  if(!amount || amount <= 0) return;
+  const list = getExpenses();
+  list.push({ amount, note, ts: Date.now() });
+  setExpenses(list);
+  closeDrawers();
+  renderMain(true);
+});
+
+/* ══ EDIT DRAWER ══ */
+let editIdx = null;
+function openEdit(idx){
+  const e = getExpenses()[idx]; if(!e) return;
+  editIdx = idx;
+  document.getElementById('edit-amount').value = e.amount;
+  document.getElementById('edit-note').value   = e.note || '';
+  openDrawer(drawerEdit);
+}
+document.getElementById('update-expense').addEventListener('click', ()=>{
+  if(editIdx === null) return;
+  const amount = parseFloat(document.getElementById('edit-amount').value);
+  const note   = document.getElementById('edit-note').value.trim();
+  if(!amount || amount <= 0) return;
+  const list = getExpenses();
+  list[editIdx] = { ...list[editIdx], amount, note };
+  setExpenses(list); editIdx = null; closeDrawers(); renderMain(true);
+});
+document.getElementById('delete-expense').addEventListener('click', ()=>{
+  if(editIdx === null) return;
+  const list = getExpenses();
+  list.splice(editIdx, 1);
+  setExpenses(list); editIdx = null; closeDrawers(); renderMain(true);
+});
+
+/* ══ SETTINGS ACTIONS ══ */
+document.getElementById('save-salary').addEventListener('click', ()=>{
+  const v = parseFloat(document.getElementById('salary-input').value) || 0;
+  setSalary(v); renderMain(true);
+  const btn = document.getElementById('save-salary');
+  btn.textContent = 'Enregistré ✓';
+  setTimeout(()=> btn.textContent = 'Enregistrer', 1600);
+});
+document.getElementById('add-fixed-btn').addEventListener('click', ()=>{
+  const label  = document.getElementById('new-fixed-label').value.trim();
+  const amount = parseFloat(document.getElementById('new-fixed-amount').value) || 0;
+  if(!label || !amount) return;
+  const list = getFixed(); list.push({ label, amount }); setFixed(list);
+  document.getElementById('new-fixed-label').value  = '';
+  document.getElementById('new-fixed-amount').value = '';
+  renderSettings(); renderMain(true);
+});
+document.getElementById('reset-all-btn').addEventListener('click', ()=>{
+  if(!confirm('Supprimer toutes les dépenses ? Salaire et charges fixes sont conservés.')) return;
+  const keys = [];
+  for(let i=0;i<localStorage.length;i++){
+    if(localStorage.key(i).startsWith('exp-')) keys.push(localStorage.key(i));
+  }
+  keys.forEach(k=> localStorage.removeItem(k));
+  renderMain(true);
+});
+
+/* ══ INIT ══ */
+renderMain(false);
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
